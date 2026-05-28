@@ -208,7 +208,7 @@ export function compute3dViewport(
   widthPx: number,
   heightPx: number,
   players: PlayerModel[],
-  marginRatio = 0.05,
+  marginRatio = 0,
 ): ProjectViewport {
   const origin = { x: 0, y: 0 }
   const canvas: ProjectionCanvas = { widthPx, heightPx }

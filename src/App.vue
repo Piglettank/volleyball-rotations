@@ -53,7 +53,7 @@ async function importLayouts(event: Event) {
   <v-app>
     <v-main class="app-main">
       <div class="workspace">
-        <section class="court-area">
+        <section class="court-area" :class="{ 'court-area--3d': viewMode === '3d' }">
           <div class="court-stage">
             <Court
               v-model:view-mode="viewMode"
@@ -345,6 +345,10 @@ $desktop-breakpoint: 769px;
 .import-alert {
   margin-top: 0.75rem;
   max-width: 24rem;
+}
+
+.court-area--3d {
+  padding: 0;
 }
 
 @media (min-width: $desktop-breakpoint) {

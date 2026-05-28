@@ -50,6 +50,7 @@ const camera = reactive<Camera3D>({ ...DEFAULT_CAMERA_3D })
 
 type DragState =
   | { type: 'orbit'; lastX: number; lastY: number }
+  | { type: 'pan'; lastX: number; lastY: number }
   | { type: 'player'; playerId: string; lastX: number; lastY: number }
 
 type PinchState = {
@@ -61,7 +62,26 @@ const pinch = ref<PinchState | null>(null)
 const activePointers = new Map<number, { x: number; y: number }>()
 const selectedPlayerId = ref<string | null>(null)
 const viewport3d = ref<ProjectViewport | null>(null)
+const userViewportPan = ref({ x: 0, y: 0 })
 const playerAnimator = createPlayerPositionAnimator()
+
+function getViewport3d(): ProjectViewport | undefined {
+  const base = viewport3d.value
+  if (!base) {
+    return undefined
+  }
+
+  const { x, y } = userViewportPan.value
+  if (x === 0 && y === 0) {
+    return base
+  }
+
+  return {
+    scale: base.scale,
+    offsetX: base.offsetX + x,
+    offsetY: base.offsetY + y,
+  }
+}
 
 function displayPlayers(): PlayerModel[] {
   return playerAnimator.getDisplayPlayers(props.players)
@@ -129,7 +149,7 @@ function paint() {
     updateViewport3d()
   }
 
-  const viewport = props.viewMode === '3d' ? (viewport3d.value ?? undefined) : undefined
+  const viewport = props.viewMode === '3d' ? getViewport3d() : undefined
 
   prepareCanvasDraw(courtCtx, dims)
   drawCourtGeometry(courtCtx, props.viewMode, dims, camera, viewport)
@@ -214,6 +234,13 @@ function onPointerDown(event: PointerEvent) {
   activePointers.set(event.pointerId, point)
   stackRef.value?.setPointerCapture(event.pointerId)
 
+  if (props.viewMode === '3d' && event.button === 1) {
+    event.preventDefault()
+    selectedPlayerId.value = null
+    drag.value = { type: 'pan', lastX: point.x, lastY: point.y }
+    return
+  }
+
   if (activePointers.size >= 2) {
     beginPinchIfNeeded()
     return
@@ -227,7 +254,7 @@ function onPointerDown(event: PointerEvent) {
     props.viewMode,
     props.meter,
     camera,
-    viewport3d.value ?? undefined,
+    getViewport3d(),
     getCanvasPx(getDims()),
   )
 
@@ -272,6 +299,15 @@ function onPointerMove(event: PointerEvent) {
     return
   }
 
+  if (state.type === 'pan') {
+    userViewportPan.value = {
+      x: userViewportPan.value.x + deltaX,
+      y: userViewportPan.value.y + deltaY,
+    }
+    paint()
+    return
+  }
+
   const player = displayPlayers().find((entry) => entry.id === state.playerId)
   if (!player) return
 
@@ -284,7 +320,7 @@ function onPointerMove(event: PointerEvent) {
     props.viewMode,
     props.meter,
     camera,
-    viewport3d.value ?? undefined,
+    getViewport3d(),
     getCanvasPx(getDims()),
   )
 
@@ -383,6 +419,7 @@ watch(
       selectedPlayerId.value = null
       Object.assign(camera, DEFAULT_CAMERA_3D)
       viewport3d.value = null
+      userViewportPan.value = { x: 0, y: 0 }
       return
     }
 
@@ -396,7 +433,11 @@ watch(
   <div
     ref="stackRef"
     class="court-canvas-stack"
-    :class="{ 'is-3d': viewMode === '3d', dragging: drag !== null || pinch !== null }"
+    :class="{
+      'is-3d': viewMode === '3d',
+      dragging: drag !== null || pinch !== null,
+      'dragging-pan': drag?.type === 'pan',
+    }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
@@ -422,8 +463,12 @@ watch(
     cursor: grab;
   }
 
-  &.is-3d.dragging {
+  &.is-3d.dragging:not(.dragging-pan) {
     cursor: grabbing;
+  }
+
+  &.is-3d.dragging-pan {
+    cursor: move;
   }
 }
 
