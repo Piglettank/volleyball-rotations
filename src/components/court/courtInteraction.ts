@@ -1,16 +1,12 @@
-import {
-  COURT,
-  PLAYER_MARKER_3D,
-  type ViewMode,
-} from '@/components/court/courtGeometry'
+import { COURT, playerMarkerRadius2d, type ViewMode } from '@/components/court/courtGeometry'
 import type { Camera3D, ProjectionCanvas, ProjectViewport } from '@/components/court/courtProjection'
 import { project } from '@/components/court/courtProjection'
+import { getPlayerMarker3dScreen } from '@/components/court/playerMarker3d'
 import type { CourtCoordinate } from '@/models/player'
 import type { PlayerModel } from '@/models/player'
 
-export const PLAYER_MARKER_RADIUS_FACTOR = 0.38
-
 const ORIGIN = { x: 0, y: 0 }
+const MARKER_HIT_PADDING_PX = 6
 
 export function playerMetersOnCourt(player: PlayerModel): { xM: number; zM: number; yM: number } {
   const pad = COURT.extraSpaceM / 2
@@ -47,33 +43,6 @@ function distanceToSegment(
   return Math.hypot(px - closestX, py - closestY)
 }
 
-function getMarkerHeadScreen(
-  xM: number,
-  zM: number,
-  meter: number,
-  camera: Camera3D,
-  viewport?: ProjectViewport,
-  canvas?: ProjectionCanvas,
-): { x: number; y: number; radius: number } {
-  const head = project(xM, zM, PLAYER_MARKER_3D.pinHeightM, '3d', meter, ORIGIN, camera, viewport, canvas)
-  const rim = project(
-    xM + PLAYER_MARKER_3D.pinRadiusM,
-    zM,
-    PLAYER_MARKER_3D.pinHeightM * 0.88,
-    '3d',
-    meter,
-    ORIGIN,
-    camera,
-    viewport,
-    canvas,
-  )
-  const radius = Math.max(12, Math.hypot(rim.x - head.x, rim.y - head.y)) + 5
-  const cx = head.x
-  const cy = head.y + radius * 0.2
-
-  return { x: cx, y: cy - radius * 0.05, radius }
-}
-
 export function findPlayerAtPoint(
   players: PlayerModel[],
   screenX: number,
@@ -91,16 +60,27 @@ export function findPlayerAtPoint(
     let distance: number
 
     if (mode === '3d') {
-      const tip = project(xM, zM, 0, '3d', meter, ORIGIN, camera, viewport3d, canvas)
-      const head = getMarkerHeadScreen(xM, zM, meter, camera, viewport3d, canvas)
-      const tipDistance = Math.hypot(screenX - tip.x, screenY - tip.y) - 10
-      const headDistance = Math.hypot(screenX - head.x, screenY - head.y) - head.radius
-      const stemDistance =
-        distanceToSegment(screenX, screenY, tip.x, tip.y, head.x, head.y + head.radius) - 6
-      distance = Math.min(tipDistance, headDistance, stemDistance)
+      const marker = getPlayerMarker3dScreen(xM, zM, meter, camera, viewport3d, canvas)
+      const hitRadius = marker.radius + MARKER_HIT_PADDING_PX
+
+      if (marker.topDown) {
+        distance = Math.hypot(screenX - marker.tip.x, screenY - marker.tip.y) - hitRadius
+      } else {
+        const headDistance = Math.hypot(screenX - marker.head.x, screenY - marker.head.y) - hitRadius
+        const stemDistance =
+          distanceToSegment(
+            screenX,
+            screenY,
+            marker.tip.x,
+            marker.tip.y,
+            marker.head.x,
+            marker.head.y,
+          ) - MARKER_HIT_PADDING_PX
+        distance = Math.min(headDistance, stemDistance)
+      }
     } else {
       const screen = project(xM, zM, 0, mode, meter, ORIGIN, camera)
-      const hitRadius = meter * PLAYER_MARKER_RADIUS_FACTOR + 6
+      const hitRadius = playerMarkerRadius2d(meter) + MARKER_HIT_PADDING_PX
       distance = Math.hypot(screenX - screen.x, screenY - screen.y) - hitRadius
     }
 

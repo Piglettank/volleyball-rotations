@@ -41,7 +41,13 @@ type DragState =
   | { type: 'orbit'; lastX: number; lastY: number }
   | { type: 'player'; playerId: string; lastX: number; lastY: number }
 
+type PinchState = {
+  lastDistance: number
+}
+
 const drag = ref<DragState | null>(null)
+const pinch = ref<PinchState | null>(null)
+const activePointers = new Map<number, { x: number; y: number }>()
 const selectedPlayerId = ref<string | null>(null)
 const viewport3d = ref<ProjectViewport | null>(null)
 const playerAnimator = createPlayerPositionAnimator()
@@ -123,8 +129,58 @@ function canvasPoint(event: PointerEvent): { x: number; y: number } {
   }
 }
 
+function activePointerDistance(): number {
+  const points = [...activePointers.values()]
+  if (points.length < 2) {
+    return 0
+  }
+
+  const first = points[0]!
+  const second = points[1]!
+  return Math.hypot(second.x - first.x, second.y - first.y)
+}
+
+function beginPinchIfNeeded() {
+  if (props.viewMode !== '3d' || activePointers.size < 2) {
+    return
+  }
+
+  const distance = activePointerDistance()
+  if (distance < 1) {
+    return
+  }
+
+  drag.value = null
+  pinch.value = { lastDistance: distance }
+}
+
+function applyPinchZoom() {
+  const state = pinch.value
+  if (!state) {
+    return
+  }
+
+  const distance = activePointerDistance()
+  if (distance < 1 || state.lastDistance < 1) {
+    return
+  }
+
+  camera.zoom = clampZoom(camera.zoom * (distance / state.lastDistance))
+  state.lastDistance = distance
+  paint()
+}
+
 function onPointerDown(event: PointerEvent) {
-  const { x, y } = canvasPoint(event)
+  const point = canvasPoint(event)
+  activePointers.set(event.pointerId, point)
+  canvasRef.value?.setPointerCapture(event.pointerId)
+
+  if (activePointers.size >= 2) {
+    beginPinchIfNeeded()
+    return
+  }
+
+  const { x, y } = point
   const hit = findPlayerAtPoint(
     displayPlayers(),
     x,
@@ -139,7 +195,6 @@ function onPointerDown(event: PointerEvent) {
   if (hit) {
     selectedPlayerId.value = hit.id
     drag.value = { type: 'player', playerId: hit.id, lastX: x, lastY: y }
-    canvasRef.value?.setPointerCapture(event.pointerId)
     return
   }
 
@@ -147,14 +202,25 @@ function onPointerDown(event: PointerEvent) {
 
   selectedPlayerId.value = null
   drag.value = { type: 'orbit', lastX: x, lastY: y }
-  canvasRef.value?.setPointerCapture(event.pointerId)
 }
 
 function onPointerMove(event: PointerEvent) {
+  if (!activePointers.has(event.pointerId)) {
+    return
+  }
+
+  const point = canvasPoint(event)
+  activePointers.set(event.pointerId, point)
+
+  if (pinch.value && activePointers.size >= 2) {
+    applyPinchZoom()
+    return
+  }
+
   const state = drag.value
   if (!state) return
 
-  const { x, y } = canvasPoint(event)
+  const { x, y } = point
   const deltaX = x - state.lastX
   const deltaY = y - state.lastY
   state.lastX = x
@@ -193,12 +259,20 @@ function onPointerMove(event: PointerEvent) {
 }
 
 function onPointerUp(event: PointerEvent) {
-  drag.value = null
+  activePointers.delete(event.pointerId)
   canvasRef.value?.releasePointerCapture(event.pointerId)
+
+  if (activePointers.size < 2) {
+    pinch.value = null
+  }
+
+  if (activePointers.size === 0) {
+    drag.value = null
+  }
 }
 
 function onPointerLeave(event: PointerEvent) {
-  if (drag.value) {
+  if (activePointers.has(event.pointerId)) {
     onPointerUp(event)
   }
 }
@@ -253,6 +327,8 @@ watch(
   (mode) => {
     if (mode === '2d') {
       drag.value = null
+      pinch.value = null
+      activePointers.clear()
       selectedPlayerId.value = null
       Object.assign(camera, DEFAULT_CAMERA_3D)
       viewport3d.value = null
@@ -269,7 +345,7 @@ watch(
   <canvas
     ref="canvasRef"
     class="court-canvas"
-    :class="{ 'is-3d': viewMode === '3d', dragging: drag !== null }"
+    :class="{ 'is-3d': viewMode === '3d', dragging: drag !== null || pinch !== null }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"

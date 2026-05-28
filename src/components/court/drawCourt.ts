@@ -1,13 +1,32 @@
 import {
   COURT,
   COURT_COLORS,
-  PLAYER_MARKER_3D,
+  playerMarkerFontFromRadius,
+  playerMarkerRadius2d,
   type CourtDimensions,
   type ViewMode,
 } from '@/components/court/courtGeometry'
-import type { Camera3D, ProjectionCanvas, ProjectViewport } from '@/components/court/courtProjection'
+import { getPlayerMarker3dScreen } from '@/components/court/playerMarker3d'
+import type {
+  Camera3D,
+  ProjectionCanvas,
+  ProjectViewport,
+} from '@/components/court/courtProjection'
 import { project } from '@/components/court/courtProjection'
 import type { PlayerModel } from '@/models/player'
+
+/** 3D zoom scales projection; stroke widths follow so lines don't look heavy when zoomed out. */
+function courtStrokeScale(mode: ViewMode, camera: Camera3D): number {
+  return mode === '3d' ? camera.zoom : 1
+}
+
+function scaledCourtLineWidth(dims: CourtDimensions, mode: ViewMode, camera: Camera3D): number {
+  return dims.lineWidth * courtStrokeScale(mode, camera)
+}
+
+function minCourtStroke(mode: ViewMode, camera: Camera3D, px: number): number {
+  return px * courtStrokeScale(mode, camera)
+}
 
 function drawLine(
   ctx: CanvasRenderingContext2D,
@@ -82,7 +101,8 @@ function drawOutsideAndCourt(
   viewport?: ProjectViewport,
   canvas?: ProjectionCanvas,
 ) {
-  const { meter, lineWidth } = dims
+  const { meter } = dims
+  const lineWidth = scaledCourtLineWidth(dims, mode, camera)
   const pad = COURT.extraSpaceM / 2
   const totalW = COURT.widthM + COURT.extraSpaceM
   const totalH = COURT.lengthM + COURT.extraSpaceM
@@ -115,6 +135,7 @@ function drawNet3d(
   viewport?: ProjectViewport,
   canvas?: ProjectionCanvas,
 ) {
+  const mode = '3d' as const
   const pad = COURT.extraSpaceM / 2
   const netZ = pad + COURT.lengthM / 2
   const netTop = COURT.netHeightM
@@ -130,7 +151,7 @@ function drawNet3d(
     project(xM, zM, yM, '3d', meter, origin, camera, viewport, canvas)
 
   // Poles outside sidelines, floor to above net
-  const poleWidth = Math.max(3, lineWidth * 2.2)
+  const poleWidth = Math.max(minCourtStroke(mode, camera, 3), lineWidth * 1.5)
   for (const poleX of [poleLeftX, poleRightX]) {
     const base = project3d(poleX, netZ, 0)
     const top = project3d(poleX, netZ, poleTop)
@@ -141,7 +162,7 @@ function drawNet3d(
     ctx.lineCap = 'round'
     ctx.strokeStyle = COURT_COLORS.netPost
     ctx.stroke()
-    ctx.lineWidth = 1
+    ctx.lineWidth = minCourtStroke(mode, camera, 1)
     ctx.strokeStyle = COURT_COLORS.netPostStroke
     ctx.stroke()
   }
@@ -150,7 +171,7 @@ function drawNet3d(
   const verticalStrands = 26
   const horizontalStrands = 3
 
-  ctx.lineWidth = Math.max(0.8, lineWidth * 0.45)
+  ctx.lineWidth = Math.max(minCourtStroke(mode, camera, 0.8), lineWidth * 0.45)
   ctx.strokeStyle = COURT_COLORS.netMesh
 
   for (let i = 0; i <= verticalStrands; i++) {
@@ -166,7 +187,7 @@ function drawNet3d(
   }
 
   // Top tape along net width
-  ctx.lineWidth = Math.max(1.5, lineWidth * 0.9)
+  ctx.lineWidth = Math.max(minCourtStroke(mode, camera, 1.5), lineWidth * 0.9)
   ctx.strokeStyle = COURT_COLORS.netTape
   drawLine(
     ctx,
@@ -180,7 +201,7 @@ function drawNet3d(
     ctx,
     project3d(netLeftX, netZ, netBottom),
     project3d(netRightX, netZ, netBottom),
-    Math.max(1, lineWidth * 0.6),
+    Math.max(minCourtStroke(mode, camera, 1), lineWidth * 0.6),
   )
 
   // Antennas at net edges
@@ -195,7 +216,7 @@ function drawNet3d(
   }
 
   // Guy lines from pole tops to net top corners
-  ctx.lineWidth = Math.max(1, lineWidth * 0.55)
+  ctx.lineWidth = Math.max(minCourtStroke(mode, camera, 1), lineWidth * 0.55)
   ctx.strokeStyle = COURT_COLORS.netTape
   drawLine(
     ctx,
@@ -220,7 +241,8 @@ function drawCourtLines(
   viewport?: ProjectViewport,
   canvas?: ProjectionCanvas,
 ) {
-  const { meter, lineWidth } = dims
+  const { meter } = dims
+  const lineWidth = scaledCourtLineWidth(dims, mode, camera)
   const pad = COURT.extraSpaceM / 2
   const totalW = COURT.widthM + COURT.extraSpaceM
   const outerInset = 0.5
@@ -342,6 +364,29 @@ function drawCourtLines(
   }
 }
 
+function drawDiscMarker(
+  ctx: CanvasRenderingContext2D,
+  center: { x: number; y: number },
+  radius: number,
+  label: string,
+  isSelected: boolean,
+  strokeScale = 1,
+) {
+  ctx.beginPath()
+  ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
+  ctx.fillStyle = isSelected ? COURT_COLORS.playerPinSelected : COURT_COLORS.playerFill
+  ctx.fill()
+  ctx.lineWidth = (isSelected ? 3 : 2) * strokeScale
+  ctx.strokeStyle = isSelected ? COURT_COLORS.playerPinHighlight : COURT_COLORS.playerStroke
+  ctx.stroke()
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `bold ${playerMarkerFontFromRadius(radius)}px sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(label, center.x, center.y)
+}
+
 function drawFlatPlayerMarker(
   ctx: CanvasRenderingContext2D,
   screen: { x: number; y: number },
@@ -349,73 +394,47 @@ function drawFlatPlayerMarker(
   label: string,
   isSelected: boolean,
 ) {
-  const radius = meter * 0.38
-  ctx.beginPath()
-  ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2)
-  ctx.fillStyle = isSelected ? COURT_COLORS.playerPinSelected : COURT_COLORS.playerFill
-  ctx.fill()
-  ctx.lineWidth = isSelected ? 3 : 2
-  ctx.strokeStyle = isSelected ? COURT_COLORS.playerPinHighlight : COURT_COLORS.playerStroke
-  ctx.stroke()
-
-  ctx.fillStyle = '#ffffff'
-  ctx.font = `bold ${Math.max(10, meter * 0.24)}px sans-serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(label, screen.x, screen.y)
+  drawDiscMarker(ctx, screen, playerMarkerRadius2d(meter), label, isSelected)
 }
 
-/** Classic map-pin teardrop in screen space (tip = ground contact). */
-function drawPinSilhouette(
+/** Pin stem + head circle aligned to projected 3D points (oblique views). */
+function drawLollipopPinMarker(
   ctx: CanvasRenderingContext2D,
   tip: { x: number; y: number },
   head: { x: number; y: number },
   radius: number,
   label: string,
-  fill: string,
-  stroke: string,
-  lineWidth: number,
+  isSelected: boolean,
+  strokeScale = 1,
 ) {
-  const cx = head.x
-  const cy = head.y + radius * 0.2
+  const fill = isSelected ? COURT_COLORS.playerPinSelected : COURT_COLORS.playerFill
+  const stroke = isSelected ? COURT_COLORS.playerPinHighlight : COURT_COLORS.playerStroke
+  const lineWidth = (isSelected ? 3 : 2) * strokeScale
+
+  const stemEndX = head.x + (tip.x - head.x) * 0.08
+  const stemEndY = head.y + (tip.y - head.y) * 0.08
 
   ctx.beginPath()
   ctx.moveTo(tip.x, tip.y)
-  ctx.bezierCurveTo(
-    tip.x - radius * 0.2,
-    tip.y - radius * 1.2,
-    cx - radius * 1.05,
-    cy + radius * 0.4,
-    cx - radius,
-    cy,
-  )
-  ctx.arc(cx, cy, radius, Math.PI, 0, false)
-  ctx.bezierCurveTo(
-    cx + radius * 1.05,
-    cy + radius * 0.4,
-    tip.x + radius * 0.2,
-    tip.y - radius * 1.2,
-    tip.x,
-    tip.y,
-  )
-  ctx.closePath()
-  ctx.fillStyle = fill
-  ctx.fill()
-  ctx.lineWidth = lineWidth
+  ctx.lineTo(stemEndX, stemEndY)
   ctx.strokeStyle = stroke
+  ctx.lineWidth = lineWidth
+  ctx.lineCap = 'round'
   ctx.stroke()
 
-  // Inner gloss on the bulb
   ctx.beginPath()
-  ctx.arc(cx, cy - radius * 0.28, radius * 0.5, 0, Math.PI * 2)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.22)'
+  ctx.arc(head.x, head.y, radius, 0, Math.PI * 2)
+  ctx.fillStyle = fill
   ctx.fill()
+  ctx.strokeStyle = stroke
+  ctx.lineWidth = lineWidth
+  ctx.stroke()
 
   ctx.fillStyle = '#ffffff'
-  ctx.font = `bold ${Math.max(9, radius * 0.95)}px sans-serif`
+  ctx.font = `bold ${playerMarkerFontFromRadius(radius)}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(label, cx, cy - radius * 0.05)
+  ctx.fillText(label, head.x, head.y)
 }
 
 function drawVerticalMapMarker(
@@ -430,17 +449,15 @@ function drawVerticalMapMarker(
   viewport?: ProjectViewport,
   canvas?: ProjectionCanvas,
 ) {
-  const { pinHeightM, pinRadiusM } = PLAYER_MARKER_3D
-  const tip = project(xM, zM, 0, '3d', meter, origin, camera, viewport, canvas)
-  const head = project(xM, zM, pinHeightM, '3d', meter, origin, camera, viewport, canvas)
-  const rim = project(xM + pinRadiusM, zM, pinHeightM * 0.88, '3d', meter, origin, camera, viewport, canvas)
-  const radius = Math.max(12, Math.hypot(rim.x - head.x, rim.y - head.y))
+  const marker = getPlayerMarker3dScreen(xM, zM, meter, camera, viewport, canvas)
+  const strokeScale = courtStrokeScale('3d', camera)
 
-  const fill = isSelected ? COURT_COLORS.playerPinSelected : COURT_COLORS.playerFill
-  const stroke = isSelected ? COURT_COLORS.playerPinHighlight : COURT_COLORS.playerStroke
-  const lineWidth = isSelected ? 3 : 2
+  if (marker.topDown) {
+    drawDiscMarker(ctx, marker.tip, marker.radius, label, isSelected, strokeScale)
+    return
+  }
 
-  drawPinSilhouette(ctx, tip, head, radius, label, fill, stroke, lineWidth)
+  drawLollipopPinMarker(ctx, marker.tip, marker.head, marker.radius, label, isSelected, strokeScale)
 }
 
 function drawPlayers(
@@ -500,7 +517,15 @@ export function drawCourtScene(
 
   if (mode === '3d') {
     drawOutsideAndCourt(ctx, mode, dims, origin, camera, viewport, canvas)
-    drawNet3d(ctx, dims.meter, origin, dims.lineWidth, camera, viewport, canvas)
+    drawNet3d(
+      ctx,
+      dims.meter,
+      origin,
+      scaledCourtLineWidth(dims, mode, camera),
+      camera,
+      viewport,
+      canvas,
+    )
     drawCourtLines(ctx, mode, dims, origin, camera, viewport, canvas)
   } else {
     drawOutsideAndCourt(ctx, mode, dims, origin, camera)

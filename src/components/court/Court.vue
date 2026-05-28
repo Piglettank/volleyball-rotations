@@ -108,26 +108,27 @@ onUnmounted(() => {
         :viewport-size="viewportSize"
         @player-coordinate-change="emit('playerCoordinateChange', $event)"
       />
-
-      <v-btn
-        class="view-mode-toggle"
-        variant="flat"
-        size="small"
-        :aria-label="`Switch to ${viewModeToggleLabel} view`"
-        @click="toggleViewMode"
-        @pointerdown.stop
-      >
-        <span class="view-mode-toggle__content">
-          <v-icon :icon="viewModeToggleIcon" size="small" />
-          <span class="view-mode-toggle__label">{{ viewModeToggleLabel }}</span>
-        </span>
-      </v-btn>
     </div>
+
+    <v-btn
+      class="view-mode-toggle"
+      variant="flat"
+      size="small"
+      :aria-label="`Switch to ${viewModeToggleLabel} view`"
+      @click="toggleViewMode"
+      @pointerdown.stop
+    >
+      <span class="view-mode-toggle__content">
+        <v-icon :icon="viewModeToggleIcon" size="small" />
+        <span class="view-mode-toggle__label">{{ viewModeToggleLabel }}</span>
+      </span>
+    </v-btn>
   </div>
 </template>
 
 <style scoped lang="scss">
 .court-fit {
+  position: relative;
   width: 100%;
   height: 100%;
   min-width: 0;

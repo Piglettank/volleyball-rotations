@@ -29,12 +29,39 @@ export const COURT_COLORS = {
   playerPinHighlight: '#ffd166',
 } as const
 
-/** Vertical map-pin marker dimensions (meters, world space). */
-export const PLAYER_MARKER_3D = {
-  /** Height of pin tip above court floor (world Y). */
-  pinHeightM: 1.35,
-  pinRadiusM: 0.34,
+/** Flat circle markers on the 2D court (screen pixels). */
+export const PLAYER_MARKER_2D = {
+  radiusFactor: 0.5,
+  minRadiusPx: 15,
+  minFontPx: 12,
 } as const
+
+/** Vertical pin marker in 3D (meters, world space) + screen sizing. */
+export const PLAYER_MARKER_3D = {
+  /** Height of pin head above court floor (world Y). */
+  pinHeightM: 1.4,
+  pinRadiusM: 0.42,
+  /** Minimum pin head radius on screen (helps on narrow viewports). */
+  minScreenRadiusPx: 17,
+  /** Switch to a floor disc when tip/head are this close on screen (steep / top-down). */
+  topDownHeadTipFactor: 0.85,
+} as const
+
+export function playerMarkerRadius2d(meter: number): number {
+  return Math.max(PLAYER_MARKER_2D.minRadiusPx, meter * PLAYER_MARKER_2D.radiusFactor)
+}
+
+export function playerMarkerFont2d(meter: number): number {
+  return playerMarkerFontFromRadius(playerMarkerRadius2d(meter))
+}
+
+export function playerMarkerFontFromRadius(radius: number): number {
+  return Math.max(PLAYER_MARKER_2D.minFontPx, radius * 0.58)
+}
+
+export function playerMarkerScreenRadius3d(projectedRadius: number): number {
+  return Math.max(PLAYER_MARKER_3D.minScreenRadiusPx, projectedRadius)
+}
 
 export type CourtDimensions = {
   meter: number
