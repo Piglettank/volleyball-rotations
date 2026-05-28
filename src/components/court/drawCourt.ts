@@ -3,30 +3,19 @@ import {
   COURT_COLORS,
   playerMarkerFontFromRadius,
   playerMarkerRadius2d,
+  playerMarkerStrokeWidth,
   type CourtDimensions,
   type ViewMode,
 } from '@/components/court/courtGeometry'
 import { getPlayerMarker3dScreen } from '@/components/court/playerMarker3d'
+import { playerMetersOnCourt } from '@/components/court/courtInteraction'
 import type {
   Camera3D,
   ProjectionCanvas,
   ProjectViewport,
 } from '@/components/court/courtProjection'
-import { project } from '@/components/court/courtProjection'
+import { floorCameraDepth, project } from '@/components/court/courtProjection'
 import type { PlayerModel } from '@/models/player'
-
-/** 3D zoom scales projection; stroke widths follow so lines don't look heavy when zoomed out. */
-function courtStrokeScale(mode: ViewMode, camera: Camera3D): number {
-  return mode === '3d' ? camera.zoom : 1
-}
-
-function scaledCourtLineWidth(dims: CourtDimensions, mode: ViewMode, camera: Camera3D): number {
-  return dims.lineWidth * courtStrokeScale(mode, camera)
-}
-
-function minCourtStroke(mode: ViewMode, camera: Camera3D, px: number): number {
-  return px * courtStrokeScale(mode, camera)
-}
 
 function drawLine(
   ctx: CanvasRenderingContext2D,
@@ -102,7 +91,7 @@ function drawOutsideAndCourt(
   canvas?: ProjectionCanvas,
 ) {
   const { meter } = dims
-  const lineWidth = scaledCourtLineWidth(dims, mode, camera)
+  const { lineWidth } = dims
   const pad = COURT.extraSpaceM / 2
   const totalW = COURT.widthM + COURT.extraSpaceM
   const totalH = COURT.lengthM + COURT.extraSpaceM
@@ -151,7 +140,7 @@ function drawNet3d(
     project(xM, zM, yM, '3d', meter, origin, camera, viewport, canvas)
 
   // Poles outside sidelines, floor to above net
-  const poleWidth = Math.max(minCourtStroke(mode, camera, 3), lineWidth * 1.5)
+  const poleWidth = Math.max(3, lineWidth * 1.5)
   for (const poleX of [poleLeftX, poleRightX]) {
     const base = project3d(poleX, netZ, 0)
     const top = project3d(poleX, netZ, poleTop)
@@ -162,7 +151,7 @@ function drawNet3d(
     ctx.lineCap = 'round'
     ctx.strokeStyle = COURT_COLORS.netPost
     ctx.stroke()
-    ctx.lineWidth = minCourtStroke(mode, camera, 1)
+    ctx.lineWidth = 1
     ctx.strokeStyle = COURT_COLORS.netPostStroke
     ctx.stroke()
   }
@@ -171,7 +160,7 @@ function drawNet3d(
   const verticalStrands = 26
   const horizontalStrands = 3
 
-  ctx.lineWidth = Math.max(minCourtStroke(mode, camera, 0.8), lineWidth * 0.45)
+  ctx.lineWidth = Math.max(0.8, lineWidth * 0.45)
   ctx.strokeStyle = COURT_COLORS.netMesh
 
   for (let i = 0; i <= verticalStrands; i++) {
@@ -187,7 +176,7 @@ function drawNet3d(
   }
 
   // Top tape along net width
-  ctx.lineWidth = Math.max(minCourtStroke(mode, camera, 1.5), lineWidth * 0.9)
+  ctx.lineWidth = Math.max(1.5, lineWidth * 0.9)
   ctx.strokeStyle = COURT_COLORS.netTape
   drawLine(
     ctx,
@@ -201,7 +190,7 @@ function drawNet3d(
     ctx,
     project3d(netLeftX, netZ, netBottom),
     project3d(netRightX, netZ, netBottom),
-    Math.max(minCourtStroke(mode, camera, 1), lineWidth * 0.6),
+    Math.max(1, lineWidth * 0.6),
   )
 
   // Antennas at net edges
@@ -216,7 +205,7 @@ function drawNet3d(
   }
 
   // Guy lines from pole tops to net top corners
-  ctx.lineWidth = Math.max(minCourtStroke(mode, camera, 1), lineWidth * 0.55)
+  ctx.lineWidth = Math.max(1, lineWidth * 0.55)
   ctx.strokeStyle = COURT_COLORS.netTape
   drawLine(
     ctx,
@@ -242,7 +231,7 @@ function drawCourtLines(
   canvas?: ProjectionCanvas,
 ) {
   const { meter } = dims
-  const lineWidth = scaledCourtLineWidth(dims, mode, camera)
+  const { lineWidth } = dims
   const pad = COURT.extraSpaceM / 2
   const totalW = COURT.widthM + COURT.extraSpaceM
   const outerInset = 0.5
@@ -370,13 +359,13 @@ function drawDiscMarker(
   radius: number,
   label: string,
   isSelected: boolean,
-  strokeScale = 1,
+  strokeWidth: number,
 ) {
   ctx.beginPath()
   ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
   ctx.fillStyle = isSelected ? COURT_COLORS.playerPinSelected : COURT_COLORS.playerFill
   ctx.fill()
-  ctx.lineWidth = (isSelected ? 3 : 2) * strokeScale
+  ctx.lineWidth = strokeWidth
   ctx.strokeStyle = isSelected ? COURT_COLORS.playerPinHighlight : COURT_COLORS.playerStroke
   ctx.stroke()
 
@@ -393,8 +382,9 @@ function drawFlatPlayerMarker(
   meter: number,
   label: string,
   isSelected: boolean,
+  strokeWidth: number,
 ) {
-  drawDiscMarker(ctx, screen, playerMarkerRadius2d(meter), label, isSelected)
+  drawDiscMarker(ctx, screen, playerMarkerRadius2d(meter), label, isSelected, strokeWidth)
 }
 
 /** Pin stem + head circle aligned to projected 3D points (oblique views). */
@@ -405,11 +395,10 @@ function drawLollipopPinMarker(
   radius: number,
   label: string,
   isSelected: boolean,
-  strokeScale = 1,
+  strokeWidth: number,
 ) {
   const fill = isSelected ? COURT_COLORS.playerPinSelected : COURT_COLORS.playerFill
   const stroke = isSelected ? COURT_COLORS.playerPinHighlight : COURT_COLORS.playerStroke
-  const lineWidth = (isSelected ? 3 : 2) * strokeScale
 
   const stemEndX = head.x + (tip.x - head.x) * 0.08
   const stemEndY = head.y + (tip.y - head.y) * 0.08
@@ -418,7 +407,7 @@ function drawLollipopPinMarker(
   ctx.moveTo(tip.x, tip.y)
   ctx.lineTo(stemEndX, stemEndY)
   ctx.strokeStyle = stroke
-  ctx.lineWidth = lineWidth
+  ctx.lineWidth = strokeWidth
   ctx.lineCap = 'round'
   ctx.stroke()
 
@@ -427,7 +416,7 @@ function drawLollipopPinMarker(
   ctx.fillStyle = fill
   ctx.fill()
   ctx.strokeStyle = stroke
-  ctx.lineWidth = lineWidth
+  ctx.lineWidth = strokeWidth
   ctx.stroke()
 
   ctx.fillStyle = '#ffffff'
@@ -446,18 +435,49 @@ function drawVerticalMapMarker(
   camera: Camera3D,
   label: string,
   isSelected: boolean,
+  strokeWidth: number,
   viewport?: ProjectViewport,
   canvas?: ProjectionCanvas,
 ) {
   const marker = getPlayerMarker3dScreen(xM, zM, meter, camera, viewport, canvas)
-  const strokeScale = courtStrokeScale('3d', camera)
 
   if (marker.topDown) {
-    drawDiscMarker(ctx, marker.tip, marker.radius, label, isSelected, strokeScale)
+    drawDiscMarker(ctx, marker.tip, marker.radius, label, isSelected, strokeWidth)
     return
   }
 
-  drawLollipopPinMarker(ctx, marker.tip, marker.head, marker.radius, label, isSelected, strokeScale)
+  drawLollipopPinMarker(ctx, marker.tip, marker.head, marker.radius, label, isSelected, strokeWidth)
+}
+
+function playersInDrawOrder(
+  players: PlayerModel[],
+  mode: ViewMode,
+  camera: Camera3D,
+  selectedPlayerId: string | null,
+): PlayerModel[] {
+  return [...players].sort((a, b) => {
+    const aSelected = a.id === selectedPlayerId
+    const bSelected = b.id === selectedPlayerId
+    if (aSelected !== bSelected) {
+      return aSelected ? 1 : -1
+    }
+
+    if (mode === '3d') {
+      const aDepth = floorCameraDepth(
+        playerMetersOnCourt(a).xM,
+        playerMetersOnCourt(a).zM,
+        camera,
+      )
+      const bDepth = floorCameraDepth(
+        playerMetersOnCourt(b).xM,
+        playerMetersOnCourt(b).zM,
+        camera,
+      )
+      return bDepth - aDepth
+    }
+
+    return a.coordinate.y - b.coordinate.y
+  })
 }
 
 function drawPlayers(
@@ -472,24 +492,93 @@ function drawPlayers(
   canvas?: ProjectionCanvas,
 ) {
   const { meter } = dims
-  const pad = COURT.extraSpaceM / 2
+  const { lineWidth } = dims
+  const drawOrder = playersInDrawOrder(players, mode, camera, selectedPlayerId)
 
-  for (const player of players) {
-    const x = Math.min(Math.max(player.coordinate.x, 0), 1)
-    const y = Math.min(Math.max(player.coordinate.y, 0), 1)
-    const xM = pad + x * COURT.widthM
-    const zM = pad + y * COURT.lengthM
+  for (const player of drawOrder) {
+    const { xM, zM } = playerMetersOnCourt(player)
     const label = player.abbreviation
     const isSelected = selectedPlayerId === player.id
+    const strokeWidth = playerMarkerStrokeWidth(isSelected, lineWidth)
 
     if (mode === '3d') {
-      drawVerticalMapMarker(ctx, xM, zM, meter, origin, camera, label, isSelected, viewport, canvas)
+      drawVerticalMapMarker(
+        ctx,
+        xM,
+        zM,
+        meter,
+        origin,
+        camera,
+        label,
+        isSelected,
+        strokeWidth,
+        viewport,
+        canvas,
+      )
       continue
     }
 
     const screen = project(xM, zM, 0, mode, meter, origin, camera)
-    drawFlatPlayerMarker(ctx, screen, meter, label, isSelected)
+    drawFlatPlayerMarker(ctx, screen, meter, label, isSelected, strokeWidth)
   }
+}
+
+export function prepareCanvasDraw(
+  ctx: CanvasRenderingContext2D,
+  dims: CourtDimensions,
+): void {
+  const dpr = window.devicePixelRatio || 1
+  const width = dims.totalWidthPx
+  const height = dims.totalHeightPx
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, width, height)
+}
+
+/** Court surface, lines, and net — no player markers. */
+export function drawCourtGeometry(
+  ctx: CanvasRenderingContext2D,
+  mode: ViewMode,
+  dims: CourtDimensions,
+  camera: Camera3D,
+  viewport3d?: ProjectViewport,
+): void {
+  const origin = { x: 0, y: 0 }
+  const viewport = mode === '3d' ? viewport3d : undefined
+  const canvas: ProjectionCanvas = {
+    widthPx: dims.totalWidthPx,
+    heightPx: dims.totalHeightPx,
+  }
+
+  if (mode === '3d') {
+    drawOutsideAndCourt(ctx, mode, dims, origin, camera, viewport, canvas)
+    drawNet3d(ctx, dims.meter, origin, dims.lineWidth, camera, viewport, canvas)
+    drawCourtLines(ctx, mode, dims, origin, camera, viewport, canvas)
+    return
+  }
+
+  drawOutsideAndCourt(ctx, mode, dims, origin, camera)
+  drawCourtLines(ctx, mode, dims, origin, camera)
+}
+
+/** Player markers only (drawn on a layer above the court). */
+export function drawPlayerMarkers(
+  ctx: CanvasRenderingContext2D,
+  players: PlayerModel[],
+  mode: ViewMode,
+  dims: CourtDimensions,
+  camera: Camera3D,
+  selectedPlayerId: string | null = null,
+  viewport3d?: ProjectViewport,
+): void {
+  const origin = { x: 0, y: 0 }
+  const viewport = mode === '3d' ? viewport3d : undefined
+  const canvas: ProjectionCanvas = {
+    widthPx: dims.totalWidthPx,
+    heightPx: dims.totalHeightPx,
+  }
+
+  drawPlayers(ctx, players, mode, dims, origin, camera, selectedPlayerId, viewport, canvas)
 }
 
 export function drawCourtScene(
@@ -501,36 +590,7 @@ export function drawCourtScene(
   selectedPlayerId: string | null = null,
   viewport3d?: ProjectViewport,
 ) {
-  const dpr = window.devicePixelRatio || 1
-  const width = dims.totalWidthPx
-  const height = dims.totalHeightPx
-
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  ctx.clearRect(0, 0, width, height)
-
-  const origin = { x: 0, y: 0 }
-  const viewport = mode === '3d' ? viewport3d : undefined
-  const canvas: ProjectionCanvas = {
-    widthPx: dims.totalWidthPx,
-    heightPx: dims.totalHeightPx,
-  }
-
-  if (mode === '3d') {
-    drawOutsideAndCourt(ctx, mode, dims, origin, camera, viewport, canvas)
-    drawNet3d(
-      ctx,
-      dims.meter,
-      origin,
-      scaledCourtLineWidth(dims, mode, camera),
-      camera,
-      viewport,
-      canvas,
-    )
-    drawCourtLines(ctx, mode, dims, origin, camera, viewport, canvas)
-  } else {
-    drawOutsideAndCourt(ctx, mode, dims, origin, camera)
-    drawCourtLines(ctx, mode, dims, origin, camera)
-  }
-
-  drawPlayers(ctx, players, mode, dims, origin, camera, selectedPlayerId, viewport, canvas)
+  prepareCanvasDraw(ctx, dims)
+  drawCourtGeometry(ctx, mode, dims, camera, viewport3d)
+  drawPlayerMarkers(ctx, players, mode, dims, camera, selectedPlayerId, viewport3d)
 }

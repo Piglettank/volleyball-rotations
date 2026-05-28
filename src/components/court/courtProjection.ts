@@ -105,6 +105,12 @@ function worldToCameraSpace(
   return { x: x1, y: y1, z: z2 }
 }
 
+/** Camera-space Z at the floor; larger = farther from the camera (draw first). */
+export function floorCameraDepth(xM: number, zM: number, camera: Camera3D): number {
+  const { cx, cz } = courtCenterMeters()
+  return worldToCameraSpace(xM - cx, 0, cz - zM, camera).z
+}
+
 function project3dRaw(
   xM: number,
   zM: number,

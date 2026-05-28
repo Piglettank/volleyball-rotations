@@ -10,7 +10,14 @@ import {
 } from '@/components/court/courtInteraction'
 import { getCourtDimensions, type ViewMode } from '@/components/court/courtGeometry'
 import { createPlayerPositionAnimator } from '@/components/court/courtPlayerAnimation'
-import { drawCourtScene } from '@/components/court/drawCourt'
+import { getBallImage, loadBallImage } from '@/components/court/ballImage'
+import { drawBallMarker } from '@/components/court/drawBall'
+import {
+  drawCourtGeometry,
+  drawPlayerMarkers,
+  prepareCanvasDraw,
+} from '@/components/court/drawCourt'
+import type { BallPlacement } from '@/lib/ballPlacement'
 import type { Camera3D, ProjectionCanvas, ProjectViewport } from '@/components/court/courtProjection'
 import { clampZoom, compute3dViewport, DEFAULT_CAMERA_3D } from '@/components/court/courtProjection'
 import type { CourtCoordinate } from '@/models/player'
@@ -20,6 +27,8 @@ type Props = {
   players: PlayerModel[]
   /** Changes when group/variant changes — triggers position animation. */
   formationKey: string
+  /** Derived from rotation id; not persisted. */
+  ballPlacement: BallPlacement | null
   viewMode: ViewMode
   meter?: number
   /** When set (3D), canvas fills this pixel area instead of the fixed court aspect box. */
@@ -34,7 +43,9 @@ const emit = defineEmits<{
   playerCoordinateChange: [payload: { playerId: string; coordinate: CourtCoordinate }]
 }>()
 
-const canvasRef = ref<HTMLCanvasElement | null>(null)
+const stackRef = ref<HTMLDivElement | null>(null)
+const courtCanvasRef = ref<HTMLCanvasElement | null>(null)
+const playersCanvasRef = ref<HTMLCanvasElement | null>(null)
 const camera = reactive<Camera3D>({ ...DEFAULT_CAMERA_3D })
 
 type DragState =
@@ -88,20 +99,31 @@ function updateViewport3d() {
   )
 }
 
-function paint() {
-  const canvas = canvasRef.value
-  if (!canvas) return
-
-  const dims = getDims()
+function sizeCanvasElement(canvas: HTMLCanvasElement, dims: ReturnType<typeof getDims>) {
   const dpr = window.devicePixelRatio || 1
 
   canvas.width = dims.totalWidthPx * dpr
   canvas.height = dims.totalHeightPx * dpr
   canvas.style.width = `${dims.totalWidthPx}px`
   canvas.style.height = `${dims.totalHeightPx}px`
+}
 
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
+function paint() {
+  const courtCanvas = courtCanvasRef.value
+  const playersCanvas = playersCanvasRef.value
+  if (!courtCanvas || !playersCanvas) {
+    return
+  }
+
+  const dims = getDims()
+  sizeCanvasElement(courtCanvas, dims)
+  sizeCanvasElement(playersCanvas, dims)
+
+  const courtCtx = courtCanvas.getContext('2d')
+  const playersCtx = playersCanvas.getContext('2d')
+  if (!courtCtx || !playersCtx) {
+    return
+  }
 
   if (props.viewMode === '3d' && !viewport3d.value) {
     updateViewport3d()
@@ -109,11 +131,28 @@ function paint() {
 
   const viewport = props.viewMode === '3d' ? (viewport3d.value ?? undefined) : undefined
 
-  drawCourtScene(
-    ctx,
+  prepareCanvasDraw(courtCtx, dims)
+  drawCourtGeometry(courtCtx, props.viewMode, dims, camera, viewport)
+
+  prepareCanvasDraw(playersCtx, dims)
+  const ballImage = getBallImage()
+  if (props.ballPlacement) {
+    drawBallMarker(
+      playersCtx,
+      props.ballPlacement,
+      props.viewMode,
+      dims,
+      camera,
+      ballImage,
+      viewport,
+      getCanvasPx(dims),
+    )
+  }
+  drawPlayerMarkers(
+    playersCtx,
+    displayPlayers(),
     props.viewMode,
     dims,
-    displayPlayers(),
     camera,
     selectedPlayerId.value,
     viewport,
@@ -121,8 +160,8 @@ function paint() {
 }
 
 function canvasPoint(event: PointerEvent): { x: number; y: number } {
-  const canvas = canvasRef.value!
-  const rect = canvas.getBoundingClientRect()
+  const stack = stackRef.value!
+  const rect = stack.getBoundingClientRect()
   return {
     x: event.clientX - rect.left,
     y: event.clientY - rect.top,
@@ -173,7 +212,7 @@ function applyPinchZoom() {
 function onPointerDown(event: PointerEvent) {
   const point = canvasPoint(event)
   activePointers.set(event.pointerId, point)
-  canvasRef.value?.setPointerCapture(event.pointerId)
+  stackRef.value?.setPointerCapture(event.pointerId)
 
   if (activePointers.size >= 2) {
     beginPinchIfNeeded()
@@ -260,7 +299,7 @@ function onPointerMove(event: PointerEvent) {
 
 function onPointerUp(event: PointerEvent) {
   activePointers.delete(event.pointerId)
-  canvasRef.value?.releasePointerCapture(event.pointerId)
+  stackRef.value?.releasePointerCapture(event.pointerId)
 
   if (activePointers.size < 2) {
     pinch.value = null
@@ -292,6 +331,11 @@ onMounted(() => {
   updateViewport3d()
   paint()
   window.addEventListener('resize', onResize)
+  loadBallImage()
+    .then(() => paint())
+    .catch(() => {
+      // Fallback circle is drawn when image is unavailable.
+    })
 })
 
 function onResize() {
@@ -311,6 +355,13 @@ watch(
       updateViewport3d()
       paint()
     })
+  },
+)
+
+watch(
+  () => props.ballPlacement,
+  () => {
+    paint()
   },
 )
 
@@ -342,9 +393,9 @@ watch(
 </script>
 
 <template>
-  <canvas
-    ref="canvasRef"
-    class="court-canvas"
+  <div
+    ref="stackRef"
+    class="court-canvas-stack"
     :class="{ 'is-3d': viewMode === '3d', dragging: drag !== null || pinch !== null }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
@@ -352,11 +403,15 @@ watch(
     @pointercancel="onPointerUp"
     @pointerleave="onPointerLeave"
     @wheel.prevent="onWheel"
-  />
+  >
+    <canvas ref="courtCanvasRef" class="court-canvas court-canvas--court" />
+    <canvas ref="playersCanvasRef" class="court-canvas court-canvas--players" />
+  </div>
 </template>
 
 <style scoped lang="scss">
-.court-canvas {
+.court-canvas-stack {
+  position: relative;
   display: block;
   touch-action: none;
   user-select: none;
@@ -369,6 +424,17 @@ watch(
 
   &.is-3d.dragging {
     cursor: grabbing;
+  }
+}
+
+.court-canvas {
+  display: block;
+
+  &--players {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
   }
 }
 </style>

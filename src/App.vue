@@ -4,11 +4,13 @@ import { storeToRefs } from 'pinia'
 
 import Court from '@/components/court/Court.vue'
 import { COURT_COLORS, type ViewMode } from '@/components/court/courtGeometry'
+import { useRotationUrlSync } from '@/composables/useRotationUrlSync'
 import { featureFlags } from '@/config/featureFlags'
 import { usePlayerStore } from '@/stores/player'
 
 const playerStore = usePlayerStore()
-const { activeGroupId, activeVariantId, formations } = storeToRefs(playerStore)
+useRotationUrlSync()
+const { activeGroupId, activeVariantId, visibleFormations } = storeToRefs(playerStore)
 
 const viewMode = ref<ViewMode>('2d')
 const importInputRef = ref<HTMLInputElement | null>(null)
@@ -57,6 +59,7 @@ async function importLayouts(event: Event) {
               v-model:view-mode="viewMode"
               class="court-fill"
               :formation-key="playerStore.currentRotationId"
+              :ball-placement="playerStore.ballPlacement"
               :players="playerStore.playersOnCourt"
               @player-coordinate-change="
                 playerStore.setActiveCoordinate($event.playerId, $event.coordinate)
@@ -76,11 +79,16 @@ async function importLayouts(event: Event) {
         </section>
 
         <v-sheet class="controls-panel" elevation="1" rounded="0">
+          <div class="app-logo">
+            <img class="app-logo__icon" src="/favicon.ico" alt="" width="44" height="44" />
+            <span class="app-logo__title">Volleyball rotations</span>
+          </div>
+
           <div class="panel-section formation-row">
             <v-select
               class="formation-row__group"
               :model-value="activeGroupId"
-              :items="formations"
+              :items="visibleFormations"
               item-title="name"
               item-value="id"
               density="comfortable"
@@ -229,6 +237,30 @@ $desktop-breakpoint: 769px;
   }
 }
 
+.app-logo {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-logo__icon {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.app-logo__title {
+  font-family: var(--font-sport-display);
+  font-size: 1.875rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
+}
+
 .panel-section {
   display: flex;
   flex-direction: column;
@@ -246,6 +278,7 @@ $desktop-breakpoint: 769px;
 }
 
 .formation-row__variant-controls {
+  --variant-stepper-size: 2.875rem;
   display: flex;
   width: 100%;
   align-items: center;
@@ -276,10 +309,11 @@ $desktop-breakpoint: 769px;
 }
 
 .variant-stepper-btn {
-  flex-shrink: 0;
-  width: 2.75rem;
-  min-width: 2.75rem;
-  height: 2.75rem;
+  height: var(--variant-stepper-size) !important;
+  min-height: var(--variant-stepper-size) !important;
+  max-height: var(--variant-stepper-size) !important;
+  width: var(--variant-stepper-size) !important;
+  min-width: var(--variant-stepper-size) !important;
   padding: 0;
 }
 
@@ -320,9 +354,15 @@ $desktop-breakpoint: 769px;
 
   .controls-panel {
     order: -1;
-    width: min(18rem, 32vw);
+    width: min(24rem, 38vw);
+    flex-shrink: 0;
+    padding: 1.25rem;
     border-left: none;
     border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  }
+
+  .app-logo {
+    display: flex;
   }
 
   .court-area {

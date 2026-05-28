@@ -8,12 +8,14 @@ import {
   getCourtDimensions,
   type ViewMode,
 } from '@/components/court/courtGeometry'
+import type { BallPlacement } from '@/lib/ballPlacement'
 import type { CourtCoordinate } from '@/models/player'
 import type { PlayerModel } from '@/models/player'
 
 type Props = {
   players: PlayerModel[]
   formationKey: string
+  ballPlacement: BallPlacement | null
 }
 
 const props = defineProps<Props>()
@@ -103,6 +105,7 @@ onUnmounted(() => {
       <CourtCanvas
         :players="props.players"
         :formation-key="props.formationKey"
+        :ball-placement="props.ballPlacement"
         :view-mode="viewMode"
         :meter="meter"
         :viewport-size="viewportSize"

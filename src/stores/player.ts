@@ -9,6 +9,9 @@ import type {
   PlayerCoordinates,
   SavedRotations,
 } from '@/models/rotation'
+import { isAdvancedDefenseGroup } from '@/config/advancedDefenseGroups'
+import { featureFlags } from '@/config/featureFlags'
+import { getBallPlacement } from '@/lib/ballPlacement'
 
 const roster: RosterPlayer[] = [
   { id: 'setter-1', name: 'Setter', abbreviation: 'S' },
@@ -63,6 +66,7 @@ const ROTATION_LINEUPS: Partial<Record<string, Lineup>> = {
 }
 
 const STORAGE_KEY = 'volleyball-formations-v1'
+const BUNDLED_FORMATIONS_URL = '/volleyball-formations.json'
 
 const defaultPlayerCoordinates: PlayerCoordinates = {
   'setter-1': { x: 0.83, y: 0.88 },
@@ -283,6 +287,28 @@ export const usePlayerStore = defineStore('player', () => {
   const activeGroupId = ref(formations.value[0]?.id ?? '')
   const activeVariantId = ref(formations.value[0]?.variants?.[0]?.id ?? null)
 
+  const visibleFormations = computed(() => {
+    if (featureFlags.advancedDefense) {
+      return formations.value
+    }
+
+    return formations.value.filter((group) => !isAdvancedDefenseGroup(group.id))
+  })
+
+  function ensureActiveGroupVisible() {
+    if (visibleFormations.value.some((group) => group.id === activeGroupId.value)) {
+      return
+    }
+
+    const first = visibleFormations.value[0]
+    if (!first) {
+      return
+    }
+
+    activeGroupId.value = first.id
+    activeVariantId.value = first.variants?.[0]?.id ?? null
+  }
+
   const activeGroup = computed(() =>
     formations.value.find((group) => group.id === activeGroupId.value),
   )
@@ -296,6 +322,8 @@ export const usePlayerStore = defineStore('player', () => {
   const currentRotationId = computed(() =>
     activeRotationId(activeGroupId.value, activeVariantId.value),
   )
+
+  const ballPlacement = computed(() => getBallPlacement(currentRotationId.value))
 
   const activeCoordinates = computed(() => {
     if (activeVariant.value) {
@@ -334,10 +362,25 @@ export const usePlayerStore = defineStore('player', () => {
   })
 
   function persistToLocalStorage() {
-    if (typeof window === 'undefined') {
+    if (!featureFlags.layoutPersistence || typeof window === 'undefined') {
       return
     }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeFormations(formations.value)))
+  }
+
+  function applySavedToFormations(saved: SavedRotations) {
+    const previousRotationId = activeRotationId(activeGroupId.value, activeVariantId.value)
+
+    formations.value = applySavedRotations(cloneLibrary(buildInitialFormations()), saved)
+
+    if (previousRotationId && setActiveRotation(previousRotationId)) {
+      ensureActiveGroupVisible()
+      return
+    }
+
+    activeGroupId.value = formations.value[0]?.id ?? ''
+    activeVariantId.value = formations.value[0]?.variants?.[0]?.id ?? null
+    ensureActiveGroupVisible()
   }
 
   function clearStoredFormations() {
@@ -361,9 +404,7 @@ export const usePlayerStore = defineStore('player', () => {
       const parsed = JSON.parse(raw)
       const saved = normalizeSavedRotations(parsed)
       if (saved) {
-        formations.value = applySavedRotations(cloneLibrary(buildInitialFormations()), saved)
-        activeGroupId.value = formations.value[0]?.id ?? ''
-        activeVariantId.value = formations.value[0]?.variants?.[0]?.id ?? null
+        applySavedToFormations(saved)
         return
       }
     } catch {
@@ -373,8 +414,65 @@ export const usePlayerStore = defineStore('player', () => {
     clearStoredFormations()
   }
 
+  async function hydrateFromBundledJson() {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      const response = await fetch(BUNDLED_FORMATIONS_URL)
+      if (!response.ok) {
+        return
+      }
+
+      const parsed: unknown = await response.json()
+      const saved = normalizeSavedRotations(parsed)
+      if (saved) {
+        applySavedToFormations(saved)
+      }
+    } catch {
+      // Keep built-in defaults from buildInitialFormations().
+    }
+  }
+
+  async function hydrateFormations() {
+    if (featureFlags.layoutPersistence) {
+      hydrateFromLocalStorage()
+      return
+    }
+
+    await hydrateFromBundledJson()
+  }
+
+  function setActiveRotation(rotationId: string): boolean {
+    for (const group of formations.value) {
+      if (!featureFlags.advancedDefense && isAdvancedDefenseGroup(group.id)) {
+        continue
+      }
+
+      if (group.variants?.length) {
+        const variant = group.variants.find((entry) => entry.id === rotationId)
+        if (!variant) {
+          continue
+        }
+
+        activeGroupId.value = group.id
+        activeVariantId.value = variant.id
+        return true
+      }
+
+      if (group.id === rotationId) {
+        activeGroupId.value = group.id
+        activeVariantId.value = null
+        return true
+      }
+    }
+
+    return false
+  }
+
   function setActiveGroup(id: string) {
-    const group = formations.value.find((entry) => entry.id === id)
+    const group = visibleFormations.value.find((entry) => entry.id === id)
     if (!group) {
       return
     }
@@ -436,9 +534,7 @@ export const usePlayerStore = defineStore('player', () => {
         return false
       }
 
-      formations.value = applySavedRotations(cloneLibrary(buildInitialFormations()), saved)
-      activeGroupId.value = formations.value[0]?.id ?? ''
-      activeVariantId.value = formations.value[0]?.variants?.[0]?.id ?? null
+      applySavedToFormations(saved)
       persistToLocalStorage()
       return true
     } catch {
@@ -446,11 +542,14 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  hydrateFromLocalStorage()
+  void hydrateFormations().then(() => {
+    ensureActiveGroupVisible()
+  })
 
   return {
     players,
     formations,
+    visibleFormations,
     activeGroupId,
     activeVariantId,
     activeGroup,
@@ -458,8 +557,10 @@ export const usePlayerStore = defineStore('player', () => {
     activeVariant,
     activeCoordinates,
     currentRotationId,
+    ballPlacement,
     activeFormationName,
     playersOnCourt,
+    setActiveRotation,
     setActiveGroup,
     setActiveVariant,
     stepActiveVariant,

@@ -36,6 +36,16 @@ export const PLAYER_MARKER_2D = {
   minFontPx: 12,
 } as const
 
+/** Volleyball ball indicator (world meters → screen pixels). */
+export const BALL_MARKER = {
+  radiusM: 0.3,
+  minRadiusPx: 12,
+} as const
+
+export function ballMarkerRadiusPx(meter: number): number {
+  return Math.max(BALL_MARKER.minRadiusPx, meter * BALL_MARKER.radiusM)
+}
+
 /** Vertical pin marker in 3D (meters, world space) + screen sizing. */
 export const PLAYER_MARKER_3D = {
   /** Height of pin head above court floor (world Y). */
@@ -61,6 +71,15 @@ export function playerMarkerFontFromRadius(radius: number): number {
 
 export function playerMarkerScreenRadius3d(projectedRadius: number): number {
   return Math.max(PLAYER_MARKER_3D.minScreenRadiusPx, projectedRadius)
+}
+
+const MARKER_STROKE_WIDTH_FACTOR = 2 / 3
+
+/** Player marker outline width; fixed screen pixels (not affected by 3D camera zoom). */
+export function playerMarkerStrokeWidth(isSelected: boolean, courtLineWidth: number): number {
+  const factor = isSelected ? 1 : MARKER_STROKE_WIDTH_FACTOR
+  const minPx = isSelected ? 3 : 2
+  return Math.max(minPx, courtLineWidth * factor)
 }
 
 export type CourtDimensions = {

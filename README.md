@@ -1,48 +1,86 @@
 # Volleyball Rotations
 
-This template should help get you started developing with Vue 3 in Vite.
+A browser-based tool for visualizing volleyball formations and rotations. Drag players on a regulation court diagram, step through serve/receive and defensive setups, and switch between a flat 2D map and a 3D court view.
 
-## Recommended IDE Setup
+Built with Vue 3, Vuetify, and a Canvas 2D renderer (no WebGL).
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## What it does
 
-## Recommended Browser Setup
+- Shows a full court with attack lines, three-meter lines, and net (in 3D).
+- Places six roster roles on court: setter, opposite, two middles, two left sides, and libero. Who is on court for a given rotation follows predefined lineups (e.g. which middle is front, libero in/out, double-middle when a middle serves).
+- Stores many **formation groups**, each with one or more **variants** (e.g. P1 serve, P1 receive, or attack-from-left defense).
+- Lets you adjust each player’s position per variant and persist layouts in the browser or via JSON export/import.
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## Using the app
 
-## Type Support for `.vue` Imports in TS
+### Layout
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+- **Desktop:** Controls are in a panel on the left; the court fills the rest of the screen.
+- **Phone:** The court is on top; controls sit in a panel below.
 
-## Customize configuration
+### Formations panel
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+1. **Formation group** — Choose a category (e.g. *Start position*, *Defense (A-defense)*, *Free ball*).
+2. **Variant** — For groups with multiple rotations, pick a specific situation (e.g. *P4 receive*) or use the **previous / next** buttons to step through variants.
+3. **Save** — Writes the current player positions for this variant to browser storage (`localStorage`).
+4. **Export** — Downloads all saved positions as `volleyball-formations.json`.
+5. **Import** — Loads positions from a previously exported JSON file (invalid files are rejected).
 
-## Project Setup
+Groups without variants (e.g. some free-ball setups) use a single layout for the whole group.
+
+The URL includes a `rotation` query parameter (e.g. `?rotation=p4-receive`) so you can link directly to a specific variant. Free-ball groups use the group id (e.g. `?rotation=free-ball-setter-back`).
+
+### Court
+
+**2D view (default)**
+
+- Top-down diagram; best for precise positioning.
+- **Drag** a player marker to move them. Positions are saved per variant when you press **Save**.
+- Tap **3D** (bottom-right) to switch views.
+
+**3D view**
+
+- Perspective court; drag empty space to **orbit** (rotate the camera).
+- **Scroll** (or **pinch** on touch) to zoom in/out.
+- Player markers show as pins from the side, or as flat discs when looking from above.
+- Tap **2D** to return to the diagram.
+
+Markers use role abbreviations (S, O, MB, LE, L). The active variant decides which players appear on court for that rotation.
+
+A **volleyball** (red outline) shows where the ball is for the current situation: opponent serve on receive, our serve on serve variants, left/middle/right at the net on attack defense. Free-ball formations hide the ball. Ball position follows the rotation id only and is not saved with layouts.
+
+## Development
+
+### Requirements
+
+- Node.js `^20.19` or `>=22.12`
+
+### Setup
 
 ```sh
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+### Other scripts
 
 ```sh
-npm run build
+npm run build    # type-check and production build
+npm run preview  # preview production build
+npm run lint     # ESLint + oxlint
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+### Court rendering
 
-```sh
-npm run lint
-```
+See [docs/COURT_AND_CAMERA.md](docs/COURT_AND_CAMERA.md) for how the canvas projection, 3D camera, and player markers work.
+
+### Feature flags
+
+Edit `src/config/featureFlags.ts` to toggle features:
+
+- `layoutPersistence` — Save / Export / Import. When false, layouts load from `public/volleyball-formations.json` instead of browser storage.
+- `advancedDefense` — When false, hides Defense (A-defense) and the free-ball groups from the formation dropdown (Start position and B-defense remain).
+
+## Recommended IDE
+
+[VS Code](https://code.visualstudio.com/) with the [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) extension.

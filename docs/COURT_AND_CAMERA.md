@@ -20,6 +20,8 @@ flowchart LR
 | `src/components/court/courtGeometry.ts` | Court dimensions (meters), colors, pixel sizing |
 | `src/components/court/courtProjection.ts` | World → screen projection (2D and 3D) |
 | `src/components/court/drawCourt.ts` | All canvas drawing (court, net, players) |
+| `src/components/court/drawBall.ts` | Volleyball ball indicator (serve / receive / attack) |
+| `src/lib/ballPlacement.ts` | Ball position from `currentRotationId` (not persisted) |
 | `src/components/court/courtInteraction.ts` | Hit testing and drag → court coordinates |
 | `src/components/court/CourtCanvas.vue` | Canvas element, repaint loop, pointer input |
 | `src/components/court/Court.vue` | Wrapper sizing and `viewMode` prop |
@@ -58,6 +60,10 @@ zM = pad + y * COURT.lengthM
 ```
 
 `courtInteraction.ts` → `playerMetersOnCourt()` performs this mapping.
+
+### Ball indicator (not persisted)
+
+`getBallPlacement(rotationId)` in `src/lib/ballPlacement.ts` maps variant ids to fixed normalized coordinates and heights (receive on floor, serve raised, attacks slightly above net). Tune `BALL_POSITIONS` and `SERVE_HEIGHT_M` / `ATTACK_HEIGHT_M` in that file.
 
 ### Screen space (pixels)
 
