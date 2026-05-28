@@ -13,7 +13,7 @@ export type FormationVariant = {
 }
 
 /**
- * A group like "Start position" or "Defence (A-defence)".
+ * A group like "Start position" or "Defense (A-defense)".
  * A group can either have direct coordinates (no suboptions),
  * or a list of variants (suboptions).
  */

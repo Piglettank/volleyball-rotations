@@ -121,8 +121,8 @@ function buildInitialFormations(): FormationLibrary {
       ],
     },
     {
-      id: 'defence-a',
-      name: 'Defence (A-defence)',
+      id: 'defense-a',
+      name: 'Defense (A-defense)',
       variants: [
         createVariant('attack-left', 'Attack from left'),
         createVariant('attack-middle', 'Attack from middle'),
@@ -130,8 +130,8 @@ function buildInitialFormations(): FormationLibrary {
       ],
     },
     {
-      id: 'defence-b',
-      name: 'Defence (B-defence)',
+      id: 'defense-b',
+      name: 'Defense (B-defense)',
       variants: [
         createVariant('b-attack-left', 'Attack from left'),
         createVariant('b-attack-middle', 'Attack from middle'),
