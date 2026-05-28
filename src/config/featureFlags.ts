@@ -4,7 +4,7 @@
 export const featureFlags = {
   /**
    * Save / export / import in the controls panel.
-   * When false, layouts load from `public/volleyball-formations.json` (not localStorage).
+   * When false, layouts load from bundled `public/volleyball-formations.json` (not localStorage).
    */
   layoutPersistence: false,
   /**

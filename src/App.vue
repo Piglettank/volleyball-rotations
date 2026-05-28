@@ -184,7 +184,7 @@ async function importLayouts(event: Event) {
 </template>
 
 <style scoped lang="scss">
-$desktop-breakpoint: 769px;
+$desktop-breakpoint: 801px;
 
 .app-main {
   height: 100dvh;
@@ -245,8 +245,8 @@ $desktop-breakpoint: 769px;
 
 .app-logo__icon {
   flex-shrink: 0;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 3.25rem;
+  height: 3.25rem;
   border-radius: 50%;
   object-fit: cover;
   object-position: center;
@@ -358,8 +358,9 @@ $desktop-breakpoint: 769px;
 
   .controls-panel {
     order: -1;
-    width: min(24rem, 38vw);
+    width: min(26rem, 42vw);
     flex-shrink: 0;
+    justify-content: center;
     padding: 1.25rem;
     border-left: none;
     border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
@@ -370,7 +371,7 @@ $desktop-breakpoint: 769px;
   }
 
   .court-area {
-    padding: 0.75rem;
+    padding: 0;
   }
 }
 

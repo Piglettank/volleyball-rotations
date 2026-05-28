@@ -12,6 +12,7 @@ import type {
 import { isAdvancedDefenseGroup } from '@/config/advancedDefenseGroups'
 import { featureFlags } from '@/config/featureFlags'
 import { getBallPlacement } from '@/lib/ballPlacement'
+import bundledFormationsJson from '../../public/volleyball-formations.json'
 
 const roster: RosterPlayer[] = [
   { id: 'setter-1', name: 'Setter', abbreviation: 'S' },
@@ -66,7 +67,6 @@ const ROTATION_LINEUPS: Partial<Record<string, Lineup>> = {
 }
 
 const STORAGE_KEY = 'volleyball-formations-v1'
-const BUNDLED_FORMATIONS_URL = '/volleyball-formations.json'
 
 const defaultPlayerCoordinates: PlayerCoordinates = {
   'setter-1': { x: 0.83, y: 0.88 },
@@ -414,34 +414,21 @@ export const usePlayerStore = defineStore('player', () => {
     clearStoredFormations()
   }
 
-  async function hydrateFromBundledJson() {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    try {
-      const response = await fetch(BUNDLED_FORMATIONS_URL)
-      if (!response.ok) {
-        return
-      }
-
-      const parsed: unknown = await response.json()
-      const saved = normalizeSavedRotations(parsed)
-      if (saved) {
-        applySavedToFormations(saved)
-      }
-    } catch {
-      // Keep built-in defaults from buildInitialFormations().
+  function hydrateFromBundledJson() {
+    const saved = normalizeSavedRotations(bundledFormationsJson)
+    if (saved) {
+      applySavedToFormations(saved)
     }
   }
 
-  async function hydrateFormations() {
+  function hydrateFormations() {
     if (featureFlags.layoutPersistence) {
       hydrateFromLocalStorage()
-      return
+    } else {
+      hydrateFromBundledJson()
     }
 
-    await hydrateFromBundledJson()
+    ensureActiveGroupVisible()
   }
 
   function setActiveRotation(rotationId: string): boolean {
@@ -542,9 +529,7 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  void hydrateFormations().then(() => {
-    ensureActiveGroupVisible()
-  })
+  hydrateFormations()
 
   return {
     players,
