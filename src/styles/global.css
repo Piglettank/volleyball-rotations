@@ -1,0 +1,7 @@
+html,
+body,
+#app,
+.v-application {
+  height: 100%;
+  margin: 0;
+}
