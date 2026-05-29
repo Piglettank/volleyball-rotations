@@ -12,6 +12,12 @@ import type {
 import { isAdvancedDefenseGroup } from '@/config/advancedDefenseGroups'
 import { featureFlags } from '@/config/featureFlags'
 import { getBallPlacement } from '@/lib/ballPlacement'
+import {
+  decodeFormationPayload,
+  encodeFormationPayload,
+  FREE_PLAY_GROUP_ID,
+  FREE_PLAY_LINEUP,
+} from '@/lib/formationShare'
 import bundledFormationsJson from '../../public/volleyball-formations.json'
 
 const roster: RosterPlayer[] = [
@@ -64,6 +70,7 @@ const ROTATION_LINEUPS: Partial<Record<string, Lineup>> = {
   'p3-receive': M1_LINEUP,
   'p2-serve': DOUBLE_MIDDLE_LINEUP,
   'p2-receive': M2_LINEUP,
+  'free-play': M1_LINEUP,
 }
 
 const STORAGE_KEY = 'volleyball-formations-v1'
@@ -150,6 +157,11 @@ function buildInitialFormations(): FormationLibrary {
     {
       id: 'free-ball-setter-front',
       name: 'Free ball (setter in front)',
+      coordinates: cloneCoordinates(),
+    },
+    {
+      id: FREE_PLAY_GROUP_ID,
+      name: 'Free play',
       coordinates: cloneCoordinates(),
     },
   ]
@@ -322,6 +334,8 @@ export const usePlayerStore = defineStore('player', () => {
   const currentRotationId = computed(() =>
     activeRotationId(activeGroupId.value, activeVariantId.value),
   )
+
+  const isFreePlayActive = computed(() => currentRotationId.value === FREE_PLAY_GROUP_ID)
 
   const ballPlacement = computed(() => getBallPlacement(currentRotationId.value))
 
@@ -529,6 +543,35 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
+  function getFreePlayShareString(): string | null {
+    if (!isFreePlayActive.value) {
+      return null
+    }
+
+    return encodeFormationPayload(activeCoordinates.value, FREE_PLAY_LINEUP)
+  }
+
+  function applyFreePlayShareString(payload: string): boolean {
+    const decoded = decodeFormationPayload(payload)
+    if (!decoded) {
+      return false
+    }
+
+    const group = formations.value.find((entry) => entry.id === FREE_PLAY_GROUP_ID)
+    if (!group?.coordinates) {
+      return false
+    }
+
+    for (const [playerId, coordinate] of Object.entries(decoded)) {
+      group.coordinates[playerId] = { ...coordinate }
+    }
+
+    activeGroupId.value = FREE_PLAY_GROUP_ID
+    activeVariantId.value = null
+    persistToLocalStorage()
+    return true
+  }
+
   hydrateFormations()
 
   return {
@@ -542,6 +585,7 @@ export const usePlayerStore = defineStore('player', () => {
     activeVariant,
     activeCoordinates,
     currentRotationId,
+    isFreePlayActive,
     ballPlacement,
     activeFormationName,
     playersOnCourt,
@@ -553,5 +597,7 @@ export const usePlayerStore = defineStore('player', () => {
     saveCurrentLayout,
     exportLibraryJson,
     importLibraryJson,
+    getFreePlayShareString,
+    applyFreePlayShareString,
   }
 })

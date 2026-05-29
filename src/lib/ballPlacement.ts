@@ -25,7 +25,7 @@ const SERVE_HEIGHT_M = 1.1
 const ATTACK_HEIGHT_M = COURT.netHeightM + 0.2
 
 export function getBallPlacement(rotationId: string): BallPlacement | null {
-  if (rotationId.startsWith('free-ball')) {
+  if (rotationId.startsWith('free-ball') || rotationId === 'free-play') {
     return null
   }
 
