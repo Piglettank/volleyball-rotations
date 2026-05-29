@@ -2,7 +2,7 @@
 import { computed, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
-import { setFormationInUrl } from '@/composables/useRotationUrlSync'
+import { clearFormationFromUrl, setFormationInUrl } from '@/lib/formationShare'
 import { featureFlags } from '@/config/featureFlags'
 import { usePlayerStore } from '@/stores/player'
 
@@ -14,14 +14,11 @@ const playerStore = usePlayerStore()
 const { activeGroupId, activeVariantId, visibleFormations } = storeToRefs(playerStore)
 
 const importInputRef = ref<HTMLInputElement | null>(null)
-const loadCodeInput = ref('')
 const copiedTooltip = ref(false)
 
 let copiedTooltipTimeout: ReturnType<typeof setTimeout> | null = null
 
 const hasVariants = computed(() => (playerStore.activeVariantOptions.length ?? 0) > 0)
-
-const shareCode = computed(() => playerStore.getFreePlayShareString() ?? '')
 
 function showCopiedTooltip() {
   copiedTooltip.value = true
@@ -57,19 +54,6 @@ onUnmounted(() => {
   }
 })
 
-function loadShareCode() {
-  const code = loadCodeInput.value.trim()
-  if (!code) {
-    return
-  }
-
-  const success = playerStore.applyFreePlayShareString(code)
-  emit('importStatus', success ? 'Formation loaded' : 'Invalid share code')
-  if (success) {
-    loadCodeInput.value = ''
-  }
-}
-
 function exportLayouts() {
   const content = playerStore.exportLibraryJson()
   const blob = new Blob([content], { type: 'application/json' })
@@ -96,6 +80,11 @@ async function importLayouts(event: Event) {
   const success = playerStore.importLibraryJson(content)
   emit('importStatus', success ? `Imported ${file.name}` : `Could not import ${file.name}`)
   input.value = ''
+}
+
+function resetLayout() {
+  playerStore.resetFreePlayLayout()
+  clearFormationFromUrl()
 }
 </script>
 
@@ -154,15 +143,14 @@ async function importLayouts(event: Event) {
       </div>
     </div>
 
-    <div v-if="playerStore.isFreePlayActive" class="panel-section free-play-share">
+    <div v-if="playerStore.isFreePlayActive" class="panel-section free-play-actions">
       <v-tooltip v-model="copiedTooltip" location="top" :open-on-hover="false">
         <template #activator="{ props: tooltipProps }">
           <v-btn
             v-bind="tooltipProps"
-            class="free-play-share__copy"
+            class="free-play-action-btn"
             variant="outlined"
             density="comfortable"
-            block
             @click="copyShareLink"
           >
             <span class="file-action-btn__content">
@@ -174,34 +162,18 @@ async function importLayouts(event: Event) {
         Link copied
       </v-tooltip>
 
-      <v-text-field
-        class="free-play-share__code"
-        :model-value="shareCode"
-        label="Share code"
-        density="comfortable"
-        hide-details
+      <v-btn
+        v-if="!featureFlags.layoutPersistence"
+        class="free-play-action-btn"
         variant="outlined"
-        readonly
-      />
-
-      <div class="free-play-share__load">
-        <v-text-field
-          v-model="loadCodeInput"
-          class="free-play-share__load-input"
-          label="Load code"
-          density="comfortable"
-          hide-details
-          variant="outlined"
-        />
-        <v-btn
-          class="free-play-share__load-btn"
-          variant="outlined"
-          density="comfortable"
-          @click="loadShareCode"
-        >
-          Load
-        </v-btn>
-      </div>
+        density="comfortable"
+        @click="resetLayout"
+      >
+        <span class="file-action-btn__content">
+          <v-icon icon="fas fa-arrow-rotate-left" size="small" />
+          <span class="file-action-btn__label">Reset</span>
+        </span>
+      </v-btn>
     </div>
 
     <template v-if="featureFlags.layoutPersistence">
@@ -264,6 +236,7 @@ $desktop-breakpoint: 801px;
 
   /* Match v-select outlined field border (VField outline opacity 0.38) */
   .file-action-btn.v-btn--variant-outlined,
+  .free-play-action-btn.v-btn--variant-outlined,
   .variant-stepper-btn.v-btn--variant-outlined {
     color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
     border-color: rgba(var(--v-theme-on-surface), var(--v-field-border-opacity, 0.38)) !important;
@@ -334,7 +307,13 @@ $desktop-breakpoint: 801px;
   gap: 0.5rem;
 }
 
+.free-play-actions {
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
 .file-action-btn,
+.free-play-action-btn,
 .variant-stepper-btn {
   :deep(.v-btn__content) {
     flex: none;
@@ -357,6 +336,13 @@ $desktop-breakpoint: 801px;
   padding: 0.4rem 0.25rem;
 }
 
+.free-play-action-btn {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  padding: 0.4rem 0.25rem;
+}
+
 .file-action-btn__content {
   display: flex;
   flex-direction: column;
@@ -373,26 +359,6 @@ $desktop-breakpoint: 801px;
 
 .hidden-input {
   display: none;
-}
-
-.free-play-share__copy {
-  height: auto;
-  padding: 0.4rem 0.25rem;
-}
-
-.free-play-share__load {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.free-play-share__load-input {
-  flex: 1;
-  min-width: 0;
-}
-
-.free-play-share__load-btn {
-  flex-shrink: 0;
 }
 
 @media (min-width: $desktop-breakpoint) {

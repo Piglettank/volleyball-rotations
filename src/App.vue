@@ -11,6 +11,7 @@ const playerStore = usePlayerStore()
 const { shareLoadError } = useRotationUrlSync()
 
 const viewMode = ref<ViewMode>('2d')
+const controlsPanelVisible = ref(true)
 const importStatus = ref('')
 
 const courtAreaColor = COURT_COLORS.outside
@@ -26,8 +27,9 @@ const statusMessage = computed(() => importStatus.value || shareLoadError.value)
           <div class="court-stage">
             <Court
               v-model:view-mode="viewMode"
+              v-model:controls-panel-visible="controlsPanelVisible"
               class="court-fill"
-              :formation-key="playerStore.currentRotationId"
+              :formation-key="playerStore.formationAnimationKey"
               :ball-placement="playerStore.ballPlacement"
               :players="playerStore.playersOnCourt"
               @player-coordinate-change="
@@ -47,7 +49,7 @@ const statusMessage = computed(() => importStatus.value || shareLoadError.value)
           </v-alert>
         </section>
 
-        <ControlsPanel @import-status="importStatus = $event" />
+        <ControlsPanel v-show="controlsPanelVisible" @import-status="importStatus = $event" />
       </div>
     </v-main>
   </v-app>

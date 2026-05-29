@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 
+import {
+  normalizeDrawPoint,
+  paintStrokes,
+  type DrawStroke,
+} from '@/components/court/courtDrawing'
 import {
   applyScreenDeltaToCourtMeters,
   clampPitch,
@@ -30,6 +35,7 @@ type Props = {
   /** Derived from rotation id; not persisted. */
   ballPlacement: BallPlacement | null
   viewMode: ViewMode
+  drawMode?: boolean
   meter?: number
   /** When set (3D), canvas fills this pixel area instead of the fixed court aspect box. */
   viewportSize?: { width: number; height: number }
@@ -37,7 +43,10 @@ type Props = {
 
 const props = withDefaults(defineProps<Props>(), {
   meter: 30,
+  drawMode: false,
 })
+
+const hasDrawings = defineModel<boolean>('hasDrawings', { default: false })
 
 const emit = defineEmits<{
   playerCoordinateChange: [payload: { playerId: string; coordinate: CourtCoordinate }]
@@ -46,6 +55,7 @@ const emit = defineEmits<{
 const stackRef = ref<HTMLDivElement | null>(null)
 const courtCanvasRef = ref<HTMLCanvasElement | null>(null)
 const playersCanvasRef = ref<HTMLCanvasElement | null>(null)
+const drawCanvasRef = ref<HTMLCanvasElement | null>(null)
 const camera = reactive<Camera3D>({ ...DEFAULT_CAMERA_3D })
 
 type DragState =
@@ -64,6 +74,23 @@ const selectedPlayerId = ref<string | null>(null)
 const viewport3d = ref<ProjectViewport | null>(null)
 const userViewportPan = ref({ x: 0, y: 0 })
 const playerAnimator = createPlayerPositionAnimator()
+const strokes = ref<DrawStroke[]>([])
+const currentStroke = ref<DrawStroke | null>(null)
+const drawingPointerId = ref<number | null>(null)
+
+const hasVisibleDrawings = computed(
+  () =>
+    strokes.value.some((stroke) => stroke.length >= 2) ||
+    (currentStroke.value?.length ?? 0) >= 2,
+)
+
+watch(
+  hasVisibleDrawings,
+  (value) => {
+    hasDrawings.value = value
+  },
+  { immediate: true },
+)
 
 function getViewport3d(): ProjectViewport | undefined {
   const base = viewport3d.value
@@ -177,6 +204,79 @@ function paint() {
     selectedPlayerId.value,
     viewport,
   )
+
+  paintDrawings()
+}
+
+function stackSize() {
+  const rect = stackRef.value?.getBoundingClientRect()
+  return {
+    width: rect?.width ?? 0,
+    height: rect?.height ?? 0,
+  }
+}
+
+function paintDrawings() {
+  const canvas = drawCanvasRef.value
+  const stack = stackRef.value
+  if (!canvas || !stack) {
+    return
+  }
+
+  const { width, height } = stack.getBoundingClientRect()
+  if (width <= 0 || height <= 0) {
+    return
+  }
+
+  const dpr = window.devicePixelRatio || 1
+  canvas.width = width * dpr
+  canvas.height = height * dpr
+  canvas.style.width = `${width}px`
+  canvas.style.height = `${height}px`
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    return
+  }
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, width, height)
+
+  const allStrokes = currentStroke.value
+    ? [...strokes.value, currentStroke.value]
+    : strokes.value
+  paintStrokes(ctx, allStrokes, width, height)
+}
+
+function clearDrawings() {
+  strokes.value = []
+  currentStroke.value = null
+  drawingPointerId.value = null
+  paintDrawings()
+}
+
+function appendDrawPoint(x: number, y: number) {
+  const { width, height } = stackSize()
+  const point = normalizeDrawPoint(x, y, width, height)
+
+  if (!currentStroke.value) {
+    currentStroke.value = [point]
+  } else {
+    currentStroke.value.push(point)
+  }
+
+  paintDrawings()
+}
+
+function finalizeCurrentStroke() {
+  if (!currentStroke.value?.length) {
+    currentStroke.value = null
+    return
+  }
+
+  strokes.value.push([...currentStroke.value])
+  currentStroke.value = null
+  paintDrawings()
 }
 
 function canvasPoint(event: PointerEvent): { x: number; y: number } {
@@ -234,6 +334,18 @@ function onPointerDown(event: PointerEvent) {
   activePointers.set(event.pointerId, point)
   stackRef.value?.setPointerCapture(event.pointerId)
 
+  if (props.drawMode) {
+    selectedPlayerId.value = null
+    drag.value = null
+    pinch.value = null
+    if (activePointers.size === 1) {
+      drawingPointerId.value = event.pointerId
+      currentStroke.value = null
+      appendDrawPoint(point.x, point.y)
+    }
+    return
+  }
+
   if (props.viewMode === '3d' && event.button === 1) {
     event.preventDefault()
     selectedPlayerId.value = null
@@ -277,6 +389,11 @@ function onPointerMove(event: PointerEvent) {
 
   const point = canvasPoint(event)
   activePointers.set(event.pointerId, point)
+
+  if (props.drawMode && currentStroke.value && event.pointerId === drawingPointerId.value) {
+    appendDrawPoint(point.x, point.y)
+    return
+  }
 
   if (pinch.value && activePointers.size >= 2) {
     applyPinchZoom()
@@ -334,8 +451,18 @@ function onPointerMove(event: PointerEvent) {
 }
 
 function onPointerUp(event: PointerEvent) {
+  const wasDrawing =
+    props.drawMode &&
+    drawingPointerId.value === event.pointerId &&
+    currentStroke.value !== null
+
   activePointers.delete(event.pointerId)
   stackRef.value?.releasePointerCapture(event.pointerId)
+
+  if (wasDrawing) {
+    finalizeCurrentStroke()
+    drawingPointerId.value = null
+  }
 
   if (activePointers.size < 2) {
     pinch.value = null
@@ -353,7 +480,7 @@ function onPointerLeave(event: PointerEvent) {
 }
 
 function onWheel(event: WheelEvent) {
-  if (props.viewMode !== '3d') {
+  if (props.drawMode || props.viewMode !== '3d') {
     return
   }
 
@@ -387,6 +514,7 @@ onUnmounted(() => {
 watch(
   () => props.formationKey,
   () => {
+    clearDrawings()
     playerAnimator.animate(props.players, () => {
       updateViewport3d()
       paint()
@@ -412,6 +540,8 @@ watch(
 watch(
   () => props.viewMode,
   (mode) => {
+    clearDrawings()
+
     if (mode === '2d') {
       drag.value = null
       pinch.value = null
@@ -427,6 +557,8 @@ watch(
     paint()
   },
 )
+
+defineExpose({ clearDrawings })
 </script>
 
 <template>
@@ -435,6 +567,7 @@ watch(
     class="court-canvas-stack"
     :class="{
       'is-3d': viewMode === '3d',
+      'is-drawing': drawMode,
       dragging: drag !== null || pinch !== null,
       'dragging-pan': drag?.type === 'pan',
     }"
@@ -447,6 +580,7 @@ watch(
   >
     <canvas ref="courtCanvasRef" class="court-canvas court-canvas--court" />
     <canvas ref="playersCanvasRef" class="court-canvas court-canvas--players" />
+    <canvas ref="drawCanvasRef" class="court-canvas court-canvas--draw" />
   </div>
 </template>
 
@@ -470,16 +604,26 @@ watch(
   &.is-3d.dragging-pan {
     cursor: move;
   }
+
+  &.is-drawing {
+    cursor: crosshair;
+  }
 }
 
 .court-canvas {
   display: block;
 
-  &--players {
+  &--players,
+  &--draw {
     position: absolute;
     left: 0;
     top: 0;
     pointer-events: none;
+  }
+
+  &--draw {
+    width: 100%;
+    height: 100%;
   }
 }
 </style>

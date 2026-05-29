@@ -289,6 +289,34 @@ function normalizeSavedRotations(raw: unknown): SavedRotations | null {
   return Object.keys(saved).length > 0 ? saved : null
 }
 
+const bundledFormations = normalizeSavedRotations(bundledFormationsJson)
+
+function getDefaultCoordinatesForRotation(rotationId: string): PlayerCoordinates {
+  if (rotationId === FREE_PLAY_GROUP_ID) {
+    return cloneCoordinates(defaultPlayerCoordinates)
+  }
+
+  if (bundledFormations?.[rotationId]) {
+    return cloneCoordinates(bundledFormations[rotationId])
+  }
+
+  for (const group of buildInitialFormations()) {
+    if (group.variants?.length) {
+      const variant = group.variants.find((entry) => entry.id === rotationId)
+      if (variant) {
+        return cloneCoordinates(variant.coordinates)
+      }
+      continue
+    }
+
+    if (group.id === rotationId && group.coordinates) {
+      return cloneCoordinates(group.coordinates)
+    }
+  }
+
+  return cloneCoordinates()
+}
+
 function activeRotationId(groupId: string, variantId: string | null): string {
   return variantId ?? groupId
 }
@@ -298,6 +326,7 @@ export const usePlayerStore = defineStore('player', () => {
   const formations = ref<FormationLibrary>(buildInitialFormations())
   const activeGroupId = ref(formations.value[0]?.id ?? '')
   const activeVariantId = ref(formations.value[0]?.variants?.[0]?.id ?? null)
+  const positionRevision = ref(0)
 
   const visibleFormations = computed(() => {
     if (featureFlags.advancedDefense) {
@@ -333,6 +362,10 @@ export const usePlayerStore = defineStore('player', () => {
 
   const currentRotationId = computed(() =>
     activeRotationId(activeGroupId.value, activeVariantId.value),
+  )
+
+  const formationAnimationKey = computed(
+    () => `${currentRotationId.value}:${positionRevision.value}`,
   )
 
   const isFreePlayActive = computed(() => currentRotationId.value === FREE_PLAY_GROUP_ID)
@@ -429,9 +462,8 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function hydrateFromBundledJson() {
-    const saved = normalizeSavedRotations(bundledFormationsJson)
-    if (saved) {
-      applySavedToFormations(saved)
+    if (bundledFormations) {
+      applySavedToFormations(bundledFormations)
     }
   }
 
@@ -519,6 +551,21 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
+  function resetFreePlayLayout() {
+    const group = formations.value.find((entry) => entry.id === FREE_PLAY_GROUP_ID)
+    if (!group?.coordinates) {
+      return
+    }
+
+    const defaults = getDefaultCoordinatesForRotation(FREE_PLAY_GROUP_ID)
+    for (const [playerId, coordinate] of Object.entries(defaults)) {
+      group.coordinates[playerId] = { ...coordinate }
+    }
+
+    positionRevision.value += 1
+    persistToLocalStorage()
+  }
+
   function saveCurrentLayout() {
     persistToLocalStorage()
   }
@@ -585,6 +632,7 @@ export const usePlayerStore = defineStore('player', () => {
     activeVariant,
     activeCoordinates,
     currentRotationId,
+    formationAnimationKey,
     isFreePlayActive,
     ballPlacement,
     activeFormationName,
@@ -594,6 +642,7 @@ export const usePlayerStore = defineStore('player', () => {
     setActiveVariant,
     stepActiveVariant,
     setActiveCoordinate,
+    resetFreePlayLayout,
     saveCurrentLayout,
     exportLibraryJson,
     importLibraryJson,

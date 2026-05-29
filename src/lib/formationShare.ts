@@ -114,6 +114,16 @@ export function buildFreePlayShareUrl(
   return url.toString()
 }
 
+export function clearFormationFromUrl(): void {
+  const url = new URL(window.location.href)
+  if (!url.searchParams.has(FORMATION_QUERY)) {
+    return
+  }
+
+  url.searchParams.delete(FORMATION_QUERY)
+  window.history.replaceState(window.history.state, '', url)
+}
+
 export function setFormationInUrl(encoded: string): string {
   const url = new URL(window.location.href)
   url.searchParams.set(ROTATION_QUERY, FREE_PLAY_GROUP_ID)
