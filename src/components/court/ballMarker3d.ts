@@ -1,6 +1,10 @@
 import { BALL_MARKER } from '@/components/court/courtGeometry'
-import type { Camera3D, ProjectionCanvas, ProjectViewport } from '@/components/court/courtProjection'
-import { project } from '@/components/court/courtProjection'
+import type {
+  Camera3D,
+  ProjectionCanvas,
+  ProjectViewport,
+} from '@/components/court/courtProjection'
+import { projectedDiscRadius3d } from '@/components/court/courtProjection'
 
 const ORIGIN = { x: 0, y: 0 }
 
@@ -14,17 +18,16 @@ export function ballMarkerScreenRadius3d(
   viewport?: ProjectViewport,
   canvas?: ProjectionCanvas,
 ): number {
-  const center = project(xM, zM, yM, '3d', meter, ORIGIN, camera, viewport, canvas)
-  const rim = project(
-    xM + BALL_MARKER.radiusM,
+  return projectedDiscRadius3d(
+    xM,
     zM,
     yM,
-    '3d',
+    BALL_MARKER.radiusM,
     meter,
     ORIGIN,
     camera,
+    BALL_MARKER.minRadiusPx,
     viewport,
     canvas,
   )
-  return Math.max(BALL_MARKER.minRadiusPx, Math.hypot(rim.x - center.x, rim.y - center.y))
 }

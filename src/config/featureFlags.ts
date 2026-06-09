@@ -6,10 +6,10 @@ export const featureFlags = {
    * Save / export / import in the controls panel.
    * When false, layouts load from bundled `public/volleyball-formations.json` (not localStorage).
    */
-  layoutPersistence: false,
+  layoutPersistence: true,
   /**
    * A-defense and free-ball formation groups in the group dropdown.
    * When false, only Start position and Defense (B-defense) are shown.
    */
-  advancedDefense: false,
+  advancedDefense: true,
 } as const

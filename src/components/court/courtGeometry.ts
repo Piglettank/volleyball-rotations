@@ -51,10 +51,10 @@ export const PLAYER_MARKER_3D = {
   /** Height of pin head above court floor (world Y). */
   pinHeightM: 1.4,
   pinRadiusM: 0.42,
-  /** Minimum pin head radius on screen (helps on narrow viewports). */
-  minScreenRadiusPx: 17,
-  /** Switch to a floor disc when tip/head are this close on screen (steep / top-down). */
-  topDownHeadTipFactor: 0.85,
+  /** Minimum pin head radius on screen (helps on narrow viewports and steep side views). */
+  minScreenRadiusPx: 24,
+  /** Hide the pin stem below this screen length (top-down / collapsed stem). */
+  minStemLengthPx: 1,
 } as const
 
 export function playerMarkerRadius2d(meter: number): number {
@@ -67,6 +67,10 @@ export function playerMarkerFont2d(meter: number): number {
 
 export function playerMarkerFontFromRadius(radius: number): number {
   return Math.max(PLAYER_MARKER_2D.minFontPx, radius * 0.58)
+}
+
+export function playerMarkerMinRadius3d(meter: number): number {
+  return Math.max(PLAYER_MARKER_3D.minScreenRadiusPx, playerMarkerRadius2d(meter))
 }
 
 export function playerMarkerScreenRadius3d(projectedRadius: number): number {

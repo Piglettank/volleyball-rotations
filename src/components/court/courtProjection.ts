@@ -83,6 +83,63 @@ function applyViewport(point: Point2D, viewport?: ProjectViewport): Point2D {
   }
 }
 
+/** Court-space unit vector (width, length, height). */
+export type CourtVec3 = { xM: number; yM: number; zM: number }
+
+/**
+ * Right and up in court meters; span the plane parallel to the image (perpendicular to view).
+ * Used to measure on-screen disc radius without foreshortening along one world axis.
+ */
+export function cameraImagePlaneBasis(camera: Camera3D): { right: CourtVec3; up: CourtVec3 } {
+  const { yaw, pitch } = camera
+  const cp = Math.cos(pitch)
+  const sp = Math.sin(pitch)
+  const cy = Math.cos(yaw)
+  const sy = Math.sin(yaw)
+
+  const right = { xM: cy, yM: 0, zM: sy }
+  const up = { xM: -sp * sy, yM: cp, zM: sp * cy }
+
+  return { right, up }
+}
+
+/** Screen radius of a world-space disc facing the camera, centered at (xM, zM, yM). */
+export function projectedDiscRadius3d(
+  xM: number,
+  zM: number,
+  yM: number,
+  radiusM: number,
+  meter: number,
+  origin: Point2D,
+  camera: Camera3D,
+  minRadiusPx: number,
+  viewport?: ProjectViewport,
+  canvas?: ProjectionCanvas,
+): number {
+  const center = project(xM, zM, yM, '3d', meter, origin, camera, viewport, canvas)
+  const { right, up } = cameraImagePlaneBasis(camera)
+
+  let maxR = 0
+  for (const axis of [right, up]) {
+    for (const sign of [-1, 1] as const) {
+      const rim = project(
+        xM + sign * axis.xM * radiusM,
+        zM + sign * axis.zM * radiusM,
+        yM + sign * axis.yM * radiusM,
+        '3d',
+        meter,
+        origin,
+        camera,
+        viewport,
+        canvas,
+      )
+      maxR = Math.max(maxR, Math.hypot(rim.x - center.x, rim.y - center.y))
+    }
+  }
+
+  return Math.max(minRadiusPx, maxR)
+}
+
 /**
  * Rotate world point into camera space (camera looks down +Z, up is +Y).
  */
@@ -180,20 +237,26 @@ export function get3dViewportFitPoints(
     samples.push({ xM: poleX, zM: netZ, yM: 0 }, { xM: poleX, zM: netZ, yM: poleTop })
   }
 
+  const { right, up } = cameraImagePlaneBasis(DEFAULT_CAMERA_3D)
+  const pinR = PLAYER_MARKER_3D.pinRadiusM
+  const headY = PLAYER_MARKER_3D.pinHeightM
+
   for (const player of players) {
     const x = Math.min(Math.max(player.coordinate.x, 0), 1)
     const y = Math.min(Math.max(player.coordinate.y, 0), 1)
     const xM = pad + x * COURT.widthM
     const zM = pad + y * COURT.lengthM
-    samples.push(
-      { xM, zM, yM: 0 },
-      { xM, zM, yM: PLAYER_MARKER_3D.pinHeightM },
-      {
-        xM: xM + PLAYER_MARKER_3D.pinRadiusM,
-        zM,
-        yM: PLAYER_MARKER_3D.pinHeightM * 0.88,
-      },
-    )
+    samples.push({ xM, zM, yM: 0 }, { xM, zM, yM: headY })
+
+    for (const axis of [right, up]) {
+      for (const sign of [-1, 1] as const) {
+        samples.push({
+          xM: xM + sign * axis.xM * pinR,
+          zM: zM + sign * axis.zM * pinR,
+          yM: headY + sign * axis.yM * pinR,
+        })
+      }
+    }
   }
 
   return samples

@@ -1,6 +1,7 @@
 import {
   COURT,
   COURT_COLORS,
+  PLAYER_MARKER_3D,
   playerMarkerFontFromRadius,
   playerMarkerRadius2d,
   playerMarkerStrokeWidth,
@@ -399,17 +400,20 @@ function drawLollipopPinMarker(
 ) {
   const fill = isSelected ? COURT_COLORS.playerPinSelected : COURT_COLORS.playerFill
   const stroke = isSelected ? COURT_COLORS.playerPinHighlight : COURT_COLORS.playerStroke
+  const headTipDist = Math.hypot(head.x - tip.x, head.y - tip.y)
 
-  const stemEndX = head.x + (tip.x - head.x) * 0.08
-  const stemEndY = head.y + (tip.y - head.y) * 0.08
+  if (headTipDist > PLAYER_MARKER_3D.minStemLengthPx) {
+    const stemEndX = head.x + (tip.x - head.x) * 0.08
+    const stemEndY = head.y + (tip.y - head.y) * 0.08
 
-  ctx.beginPath()
-  ctx.moveTo(tip.x, tip.y)
-  ctx.lineTo(stemEndX, stemEndY)
-  ctx.strokeStyle = stroke
-  ctx.lineWidth = strokeWidth
-  ctx.lineCap = 'round'
-  ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(tip.x, tip.y)
+    ctx.lineTo(stemEndX, stemEndY)
+    ctx.strokeStyle = stroke
+    ctx.lineWidth = strokeWidth
+    ctx.lineCap = 'round'
+    ctx.stroke()
+  }
 
   ctx.beginPath()
   ctx.arc(head.x, head.y, radius, 0, Math.PI * 2)
@@ -440,12 +444,6 @@ function drawVerticalMapMarker(
   canvas?: ProjectionCanvas,
 ) {
   const marker = getPlayerMarker3dScreen(xM, zM, meter, camera, viewport, canvas)
-
-  if (marker.topDown) {
-    drawDiscMarker(ctx, marker.tip, marker.radius, label, isSelected, strokeWidth)
-    return
-  }
-
   drawLollipopPinMarker(ctx, marker.tip, marker.head, marker.radius, label, isSelected, strokeWidth)
 }
 
@@ -463,16 +461,8 @@ function playersInDrawOrder(
     }
 
     if (mode === '3d') {
-      const aDepth = floorCameraDepth(
-        playerMetersOnCourt(a).xM,
-        playerMetersOnCourt(a).zM,
-        camera,
-      )
-      const bDepth = floorCameraDepth(
-        playerMetersOnCourt(b).xM,
-        playerMetersOnCourt(b).zM,
-        camera,
-      )
+      const aDepth = floorCameraDepth(playerMetersOnCourt(a).xM, playerMetersOnCourt(a).zM, camera)
+      const bDepth = floorCameraDepth(playerMetersOnCourt(b).xM, playerMetersOnCourt(b).zM, camera)
       return bDepth - aDepth
     }
 
@@ -523,10 +513,7 @@ function drawPlayers(
   }
 }
 
-export function prepareCanvasDraw(
-  ctx: CanvasRenderingContext2D,
-  dims: CourtDimensions,
-): void {
+export function prepareCanvasDraw(ctx: CanvasRenderingContext2D, dims: CourtDimensions): void {
   const dpr = window.devicePixelRatio || 1
   const width = dims.totalWidthPx
   const height = dims.totalHeightPx

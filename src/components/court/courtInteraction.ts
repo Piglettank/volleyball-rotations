@@ -1,5 +1,9 @@
-import { COURT, playerMarkerRadius2d, type ViewMode } from '@/components/court/courtGeometry'
-import type { Camera3D, ProjectionCanvas, ProjectViewport } from '@/components/court/courtProjection'
+import { COURT, PLAYER_MARKER_3D, playerMarkerRadius2d, type ViewMode } from '@/components/court/courtGeometry'
+import type {
+  Camera3D,
+  ProjectionCanvas,
+  ProjectViewport,
+} from '@/components/court/courtProjection'
 import { project } from '@/components/court/courtProjection'
 import { getPlayerMarker3dScreen } from '@/components/court/playerMarker3d'
 import type { CourtCoordinate } from '@/models/player'
@@ -62,11 +66,13 @@ export function findPlayerAtPoint(
     if (mode === '3d') {
       const marker = getPlayerMarker3dScreen(xM, zM, meter, camera, viewport3d, canvas)
       const hitRadius = marker.radius + MARKER_HIT_PADDING_PX
+      const headDistance =
+        Math.hypot(screenX - marker.head.x, screenY - marker.head.y) - hitRadius
+      const headTipDist = Math.hypot(marker.head.x - marker.tip.x, marker.head.y - marker.tip.y)
 
-      if (marker.topDown) {
-        distance = Math.hypot(screenX - marker.tip.x, screenY - marker.tip.y) - hitRadius
+      if (headTipDist <= PLAYER_MARKER_3D.minStemLengthPx) {
+        distance = headDistance
       } else {
-        const headDistance = Math.hypot(screenX - marker.head.x, screenY - marker.head.y) - hitRadius
         const stemDistance =
           distanceToSegment(
             screenX,
