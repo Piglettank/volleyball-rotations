@@ -1,4 +1,4 @@
-import { BALL_MARKER } from '@/components/court/courtGeometry'
+import { BALL_MARKER, playerMarkerRadiusBounds3d } from '@/components/court/courtGeometry'
 import type {
   Camera3D,
   ProjectionCanvas,
@@ -18,6 +18,7 @@ export function ballMarkerScreenRadius3d(
   viewport?: ProjectViewport,
   canvas?: ProjectionCanvas,
 ): number {
+  const { min, max } = playerMarkerRadiusBounds3d(meter, canvas)
   return projectedDiscRadius3d(
     xM,
     zM,
@@ -26,7 +27,8 @@ export function ballMarkerScreenRadius3d(
     meter,
     ORIGIN,
     camera,
-    BALL_MARKER.minRadiusPx,
+    Math.min(min, BALL_MARKER.minRadiusPx),
+    max,
     viewport,
     canvas,
   )

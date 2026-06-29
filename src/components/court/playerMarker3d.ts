@@ -1,4 +1,4 @@
-import { PLAYER_MARKER_3D, playerMarkerMinRadius3d } from '@/components/court/courtGeometry'
+import { PLAYER_MARKER_3D, playerMarkerRadiusBounds3d } from '@/components/court/courtGeometry'
 import type {
   Camera3D,
   ProjectionCanvas,
@@ -25,6 +25,7 @@ export function getPlayerMarker3dScreen(
   canvas?: ProjectionCanvas,
 ): PlayerMarker3dScreen {
   const { pinHeightM, pinRadiusM } = PLAYER_MARKER_3D
+  const { min, max } = playerMarkerRadiusBounds3d(meter, canvas)
   const tip = project(xM, zM, 0, '3d', meter, ORIGIN, camera, viewport, canvas)
   const head = project(xM, zM, pinHeightM, '3d', meter, ORIGIN, camera, viewport, canvas)
   const radius = projectedDiscRadius3d(
@@ -35,7 +36,8 @@ export function getPlayerMarker3dScreen(
     meter,
     ORIGIN,
     camera,
-    playerMarkerMinRadius3d(meter),
+    min,
+    max,
     viewport,
     canvas,
   )

@@ -113,6 +113,7 @@ export function projectedDiscRadius3d(
   origin: Point2D,
   camera: Camera3D,
   minRadiusPx: number,
+  maxRadiusPx: number,
   viewport?: ProjectViewport,
   canvas?: ProjectionCanvas,
 ): number {
@@ -137,7 +138,7 @@ export function projectedDiscRadius3d(
     }
   }
 
-  return Math.max(minRadiusPx, maxR)
+  return Math.min(maxRadiusPx, Math.max(minRadiusPx, maxR))
 }
 
 /**

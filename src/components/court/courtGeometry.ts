@@ -51,10 +51,13 @@ export const PLAYER_MARKER_3D = {
   /** Height of pin head above court floor (world Y). */
   pinHeightM: 1.4,
   pinRadiusM: 0.42,
-  /** Minimum pin head radius on screen (helps on narrow viewports and steep side views). */
-  minScreenRadiusPx: 24,
   /** Hide the pin stem below this screen length (top-down / collapsed stem). */
   minStemLengthPx: 1,
+  /** Min/max pin head radius as a fraction of playable court width on screen. */
+  minRadiusCourtWidthRatio: 0.052,
+  maxRadiusCourtWidthRatio: 0.09,
+  /** Hard cap as a fraction of the shorter viewport side. */
+  maxRadiusViewportRatio: 0.065,
 } as const
 
 export function playerMarkerRadius2d(meter: number): number {
@@ -69,12 +72,31 @@ export function playerMarkerFontFromRadius(radius: number): number {
   return Math.max(PLAYER_MARKER_2D.minFontPx, radius * 0.58)
 }
 
-export function playerMarkerMinRadius3d(meter: number): number {
-  return Math.max(PLAYER_MARKER_3D.minScreenRadiusPx, playerMarkerRadius2d(meter))
-}
+export type MarkerViewportSize = { widthPx: number; heightPx: number }
 
-export function playerMarkerScreenRadius3d(projectedRadius: number): number {
-  return Math.max(PLAYER_MARKER_3D.minScreenRadiusPx, projectedRadius)
+export function playerMarkerRadiusBounds3d(
+  meter: number,
+  viewport?: MarkerViewportSize,
+): { min: number; max: number } {
+  const courtWidthPx = COURT.widthM * meter
+  const shortSidePx = viewport
+    ? Math.min(viewport.widthPx, viewport.heightPx)
+    : Math.min(COURT_TOTAL_WIDTH_M * meter, COURT_TOTAL_HEIGHT_M * meter)
+
+  const max = Math.min(
+    courtWidthPx * PLAYER_MARKER_3D.maxRadiusCourtWidthRatio,
+    shortSidePx * PLAYER_MARKER_3D.maxRadiusViewportRatio,
+  )
+  const min = Math.min(
+    max,
+    Math.max(
+      PLAYER_MARKER_2D.minRadiusPx,
+      courtWidthPx * PLAYER_MARKER_3D.minRadiusCourtWidthRatio,
+      playerMarkerRadius2d(meter) * 0.9,
+    ),
+  )
+
+  return { min, max }
 }
 
 const MARKER_STROKE_WIDTH_FACTOR = 2 / 3
