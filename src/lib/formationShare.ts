@@ -3,6 +3,7 @@ import type { PlayerCoordinates } from '@/models/rotation'
 export const FREE_PLAY_GROUP_ID = 'free-play'
 export const FORMATION_QUERY = 'p'
 export const ROTATION_QUERY = 'rotation'
+export const ROTATIONS_PATH = '/learn/rotations'
 
 const FORMAT_VERSION = 1
 const PAYLOAD_BYTE_LENGTH = 13
@@ -99,16 +100,20 @@ export function decodeFormationPayload(payload: string): PlayerCoordinates | nul
   return coordinates
 }
 
+function rotationsPageUrl(): URL {
+  return new URL(ROTATIONS_PATH, window.location.origin)
+}
+
 export function buildFreePlayShareUrl(
   coordinates: PlayerCoordinates,
-  baseHref: string = window.location.href,
+  baseHref?: string,
 ): string | null {
   const encoded = encodeFormationPayload(coordinates)
   if (!encoded) {
     return null
   }
 
-  const url = new URL(baseHref)
+  const url = baseHref ? new URL(baseHref) : rotationsPageUrl()
   url.searchParams.set(ROTATION_QUERY, FREE_PLAY_GROUP_ID)
   url.searchParams.set(FORMATION_QUERY, encoded)
   return url.toString()
@@ -125,7 +130,7 @@ export function clearFormationFromUrl(): void {
 }
 
 export function setFormationInUrl(encoded: string): string {
-  const url = new URL(window.location.href)
+  const url = rotationsPageUrl()
   url.searchParams.set(ROTATION_QUERY, FREE_PLAY_GROUP_ID)
   url.searchParams.set(FORMATION_QUERY, encoded)
   window.history.replaceState(window.history.state, '', url)

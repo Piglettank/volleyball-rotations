@@ -92,7 +92,7 @@ function resetLayout() {
   <v-sheet class="controls-panel" elevation="1" rounded="0">
     <div class="app-logo">
       <img class="app-logo__icon" src="/favicon.ico" alt="" width="44" height="44" />
-      <span class="app-logo__title">Volleyball rotations</span>
+      <span class="app-logo__title">Rotations</span>
     </div>
 
     <div class="panel-section formation-row">

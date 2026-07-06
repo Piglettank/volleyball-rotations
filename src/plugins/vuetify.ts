@@ -4,7 +4,7 @@ import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
 import { aliases, fa } from 'vuetify/iconsets/fa'
 
-import { COURT_COLORS } from '@/components/court/courtGeometry'
+import { APP_THEME_COLORS } from '@/components/court/courtGeometry'
 
 export default createVuetify({
   theme: {
@@ -12,11 +12,15 @@ export default createVuetify({
     themes: {
       light: {
         colors: {
-          primary: '#1a2a3a',
-          secondary: COURT_COLORS.outside,
-          accent: COURT_COLORS.court,
-          surface: '#ffffff',
-          background: '#f4f6f8',
+          primary: APP_THEME_COLORS.primary,
+          'on-primary': APP_THEME_COLORS.onPrimary,
+          accent: APP_THEME_COLORS.primaryContainer,
+          'on-accent': APP_THEME_COLORS.onPrimaryContainer,
+          secondary: APP_THEME_COLORS.textMuted,
+          surface: APP_THEME_COLORS.surface,
+          background: APP_THEME_COLORS.background,
+          'surface-variant': APP_THEME_COLORS.surfaceVariant,
+          'on-surface': APP_THEME_COLORS.text,
         },
       },
     },
