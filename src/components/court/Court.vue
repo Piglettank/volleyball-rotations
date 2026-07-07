@@ -8,6 +8,7 @@ import {
   getCourtDimensions,
   type ViewMode,
 } from '@/components/court/courtGeometry'
+import type { Camera3D } from '@/components/court/courtProjection'
 import type { BallPlacement } from '@/lib/ballPlacement'
 import type { CourtCoordinate } from '@/models/player'
 import type { PlayerModel } from '@/models/player'
@@ -16,6 +17,7 @@ type Props = {
   players: PlayerModel[]
   formationKey: string
   ballPlacement: BallPlacement | null
+  initialCamera3D?: Camera3D
 }
 
 const props = defineProps<Props>()
@@ -137,6 +139,7 @@ onUnmounted(() => {
         v-model:has-drawings="hasDrawings"
         :meter="meter"
         :viewport-size="viewportSize"
+        :initial-camera3-d="props.initialCamera3D"
         @player-coordinate-change="emit('playerCoordinateChange', $event)"
       />
     </div>

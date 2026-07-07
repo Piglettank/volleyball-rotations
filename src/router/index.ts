@@ -16,6 +16,42 @@ const router = createRouter({
       },
     },
     {
+      path: '/learn',
+      component: () => import('@/views/learn/LearnLayout.vue'),
+      meta: { title: 'Learn — Bolleyvoll' },
+      children: [
+        { path: '' }, // no default selection — hero shown instead
+        {
+          path: 'serve',
+          name: 'learn-serve',
+          component: () => import('@/views/learn/LearnReelsView.vue'),
+          props: { category: 'serve' },
+          meta: { title: 'Serve — Bolleyvoll' },
+        },
+        {
+          path: 'spike',
+          name: 'learn-spike',
+          component: () => import('@/views/learn/LearnReelsView.vue'),
+          props: { category: 'spike' },
+          meta: { title: 'Spike — Bolleyvoll' },
+        },
+        {
+          path: 'set',
+          name: 'learn-set',
+          component: () => import('@/views/learn/LearnReelsView.vue'),
+          props: { category: 'set' },
+          meta: { title: 'Set — Bolleyvoll' },
+        },
+        {
+          path: 'receive',
+          name: 'learn-receive',
+          component: () => import('@/views/learn/LearnReelsView.vue'),
+          props: { category: 'receive' },
+          meta: { title: 'Receive — Bolleyvoll' },
+        },
+      ],
+    },
+    {
       path: '/learn/rotations',
       name: 'learn-rotations',
       component: () => import('@/views/learn/RotationsView.vue'),

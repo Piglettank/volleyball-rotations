@@ -22,6 +22,13 @@ export const DEFAULT_CAMERA_3D: Camera3D = {
   zoom: 1,
 }
 
+/** Starting 3D camera on the learn rotations page. */
+export const ROTATIONS_CAMERA_3D: Camera3D = {
+  yaw: 0.3,
+  pitch: 0.84,
+  zoom: 1.2,
+}
+
 const MIN_ZOOM = 0.55
 const MAX_ZOOM = 2.75
 

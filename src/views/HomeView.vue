@@ -8,7 +8,7 @@ function goToPlay() {
 }
 
 function goToLearn() {
-  router.push({ name: 'learn-rotations' })
+  router.push({ path: '/learn' })
 }
 </script>
 

@@ -40,6 +40,8 @@ type Props = {
   meter?: number
   /** When set (3D), canvas fills this pixel area instead of the fixed court aspect box. */
   viewportSize?: { width: number; height: number }
+  /** Initial orbit camera when entering or returning to 3D (defaults to DEFAULT_CAMERA_3D). */
+  initialCamera3D?: Camera3D
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -57,7 +59,12 @@ const stackRef = ref<HTMLDivElement | null>(null)
 const courtCanvasRef = ref<HTMLCanvasElement | null>(null)
 const playersCanvasRef = ref<HTMLCanvasElement | null>(null)
 const drawCanvasRef = ref<HTMLCanvasElement | null>(null)
-const camera = reactive<Camera3D>({ ...DEFAULT_CAMERA_3D })
+
+function startingCamera3D(): Camera3D {
+  return props.initialCamera3D ?? DEFAULT_CAMERA_3D
+}
+
+const camera = reactive<Camera3D>({ ...startingCamera3D() })
 
 type DragState =
   | { type: 'orbit'; lastX: number; lastY: number }
@@ -76,6 +83,11 @@ const hoveredPlayerId = ref<string | null>(null)
 const tooltipFrame = ref(0)
 const viewport3d = ref<ProjectViewport | null>(null)
 const userViewportPan = ref({ x: 0, y: 0 })
+
+function resetCamera3D() {
+  Object.assign(camera, startingCamera3D())
+  userViewportPan.value = { x: 0, y: 0 }
+}
 const playerAnimator = createPlayerPositionAnimator()
 const strokes = ref<DrawStroke[]>([])
 const currentStroke = ref<DrawStroke | null>(null)
@@ -622,13 +634,15 @@ watch(
       activePointers.clear()
       selectedPlayerId.value = null
       hoveredPlayerId.value = null
-      Object.assign(camera, DEFAULT_CAMERA_3D)
-      viewport3d.value = null
-      userViewportPan.value = { x: 0, y: 0 }
-      return
-    }
+    resetCamera3D()
+    viewport3d.value = null
+    return
+  }
 
-    updateViewport3d()
+  if (props.initialCamera3D) {
+    resetCamera3D()
+  }
+  updateViewport3d()
     paint()
   },
 )

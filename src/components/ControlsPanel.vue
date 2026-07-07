@@ -218,6 +218,7 @@ function resetLayout() {
         @change="importLayouts"
       />
     </template>
+    <slot name="bottom" />
   </v-sheet>
 </template>
 
@@ -244,7 +245,7 @@ $desktop-breakpoint: 801px;
   display: none;
   margin: 0;
   font-family: var(--font-sport-display);
-  font-size: 1.875rem;
+  font-size: 2.75rem;
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0.03em;

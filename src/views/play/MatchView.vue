@@ -42,10 +42,7 @@ function onPlayerClick(payload: {
   screenX: number
   screenY: number
 }) {
-  if (
-    popover.value?.team === payload.team &&
-    popover.value?.roleId === payload.roleId
-  ) {
+  if (popover.value?.team === payload.team && popover.value?.roleId === payload.roleId) {
     popover.value = null
     return
   }
@@ -71,9 +68,7 @@ function endMatch() {
 
 const showSetCompleteDialog = ref(false)
 
-const setCompleteLeader = computed(() =>
-  leadingTeam(s.value.homeScore, s.value.awayScore),
-)
+const setCompleteLeader = computed(() => leadingTeam(s.value.homeScore, s.value.awayScore))
 
 const setCompleteLeaderName = computed(() => {
   const leader = setCompleteLeader.value
@@ -172,11 +167,7 @@ function acceptAutoEnd() {
         </div>
 
         <div class="match-footer">
-          <button
-            type="button"
-            class="match-footer-btn"
-            @click="showRosterDrawer = true"
-          >
+          <button type="button" class="match-footer-btn" @click="showRosterDrawer = true">
             <v-icon icon="fas fa-users" size="x-small" />
             <span>Players</span>
           </button>
@@ -190,11 +181,7 @@ function acceptAutoEnd() {
             <span>Set complete</span>
           </button>
 
-          <button
-            type="button"
-            class="match-footer-btn match-footer-btn--end"
-            @click="endMatch"
-          >
+          <button type="button" class="match-footer-btn match-footer-btn--end" @click="endMatch">
             <v-icon icon="fas fa-door-open" size="x-small" />
             <span>End match</span>
           </button>
@@ -209,7 +196,8 @@ function acceptAutoEnd() {
       icon="fas fa-flag-checkered"
     >
       <p v-if="setCompleteLeader">
-        Award this set to <strong>{{ setCompleteLeaderName }}</strong>?
+        Award this set to <strong>{{ setCompleteLeaderName }}</strong
+        >?
       </p>
       <p v-else>Scores are tied — pick a winner:</p>
 
@@ -250,8 +238,7 @@ function acceptAutoEnd() {
     <!-- Auto 25+ end-set prompt -->
     <ConfirmDialog v-model="showAutoEndPrompt" title="End this set?" icon="fas fa-volleyball">
       <p>
-        <strong>{{ setCompleteLeaderName }}</strong> leads
-        {{ s.homeScore }}–{{ s.awayScore }}.
+        <strong>{{ setCompleteLeaderName }}</strong> leads {{ s.homeScore }}–{{ s.awayScore }}.
       </p>
 
       <template #actions>
@@ -316,7 +303,6 @@ function acceptAutoEnd() {
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  padding: 0.5rem;
   background: v-bind('COURT_COLORS.outside');
 }
 
@@ -369,7 +355,9 @@ function acceptAutoEnd() {
   border: none;
   border-radius: 0.625rem;
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
+  transition:
+    opacity 0.15s,
+    transform 0.1s;
 
   &:disabled {
     opacity: 0.45;
@@ -423,7 +411,10 @@ function acceptAutoEnd() {
   background: transparent;
   color: rgba(var(--v-theme-on-surface), 0.87);
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s, background 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.1s,
+    background 0.15s;
 
   &:disabled {
     opacity: 0.45;
@@ -475,7 +466,10 @@ function acceptAutoEnd() {
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 
   :deep(.v-icon) {
     font-size: 0.75rem !important;
@@ -517,10 +511,6 @@ function acceptAutoEnd() {
 }
 
 @media (max-width: 640px) {
-  .match-court-wrapper {
-    padding: 0.25rem;
-  }
-
   .match-controls {
     gap: 0.5rem;
     padding: 0.35rem 0.75rem 0.5rem;
