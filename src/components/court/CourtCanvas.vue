@@ -10,6 +10,7 @@ import {
   applyScreenDeltaToCourtMeters,
   clampPitch,
   findPlayerAtPoint,
+  getPlayerMarkerScreenCenter,
   metersToNormalized,
   playerMetersOnCourt,
 } from '@/components/court/courtInteraction'
@@ -71,6 +72,8 @@ const drag = ref<DragState | null>(null)
 const pinch = ref<PinchState | null>(null)
 const activePointers = new Map<number, { x: number; y: number }>()
 const selectedPlayerId = ref<string | null>(null)
+const hoveredPlayerId = ref<string | null>(null)
+const tooltipFrame = ref(0)
 const viewport3d = ref<ProjectViewport | null>(null)
 const userViewportPan = ref({ x: 0, y: 0 })
 const playerAnimator = createPlayerPositionAnimator()
@@ -205,6 +208,10 @@ function paint() {
     viewport,
   )
 
+  if (hoveredPlayerId.value) {
+    tooltipFrame.value += 1
+  }
+
   paintDrawings()
 }
 
@@ -279,6 +286,74 @@ function finalizeCurrentStroke() {
   paintDrawings()
 }
 
+function canvasToStackPoint(canvasX: number, canvasY: number): { x: number; y: number } | null {
+  const canvas = courtCanvasRef.value
+  const stack = stackRef.value
+  if (!canvas || !stack) return null
+
+  const canvasRect = canvas.getBoundingClientRect()
+  const stackRect = stack.getBoundingClientRect()
+
+  return {
+    x: canvasX + canvasRect.left - stackRect.left,
+    y: canvasY + canvasRect.top - stackRect.top,
+  }
+}
+
+function hitTestPlayers(screenX: number, screenY: number): PlayerModel | null {
+  return findPlayerAtPoint(
+    displayPlayers(),
+    screenX,
+    screenY,
+    props.viewMode,
+    props.meter,
+    camera,
+    getViewport3d(),
+    getCanvasPx(getDims()),
+  )
+}
+
+const hoveredPlayer = computed(() => {
+  if (!hoveredPlayerId.value) return null
+  return displayPlayers().find((player) => player.id === hoveredPlayerId.value) ?? null
+})
+
+const tooltipStyle = computed(() => {
+  tooltipFrame.value
+  const player = hoveredPlayer.value
+  if (!player) return undefined
+
+  const center = getPlayerMarkerScreenCenter(
+    player,
+    props.viewMode,
+    props.meter,
+    camera,
+    getViewport3d(),
+    getCanvasPx(getDims()),
+  )
+  const stackCenter = canvasToStackPoint(center.x, center.y)
+  const stackAbove = canvasToStackPoint(center.x, center.y - center.radius)
+  if (!stackCenter || !stackAbove) return undefined
+
+  const markerRadiusPx = stackCenter.y - stackAbove.y
+
+  return {
+    left: `${stackCenter.x}px`,
+    top: `${stackCenter.y}px`,
+    transform: `translate(-50%, calc(-100% - ${markerRadiusPx}px - 0.35rem))`,
+  }
+})
+
+function updateHoveredPlayer(screenX: number, screenY: number) {
+  if (props.drawMode || drag.value || pinch.value) {
+    hoveredPlayerId.value = null
+    return
+  }
+
+  const hit = hitTestPlayers(screenX, screenY)
+  hoveredPlayerId.value = hit?.id ?? null
+}
+
 function canvasPoint(event: PointerEvent): { x: number; y: number } {
   const stack = stackRef.value!
   const rect = stack.getBoundingClientRect()
@@ -336,6 +411,7 @@ function onPointerDown(event: PointerEvent) {
 
   if (props.drawMode) {
     selectedPlayerId.value = null
+    hoveredPlayerId.value = null
     drag.value = null
     pinch.value = null
     if (activePointers.size === 1) {
@@ -349,29 +425,23 @@ function onPointerDown(event: PointerEvent) {
   if (props.viewMode === '3d' && event.button === 1) {
     event.preventDefault()
     selectedPlayerId.value = null
+    hoveredPlayerId.value = null
     drag.value = { type: 'pan', lastX: point.x, lastY: point.y }
     return
   }
 
   if (activePointers.size >= 2) {
+    hoveredPlayerId.value = null
     beginPinchIfNeeded()
     return
   }
 
   const { x, y } = point
-  const hit = findPlayerAtPoint(
-    displayPlayers(),
-    x,
-    y,
-    props.viewMode,
-    props.meter,
-    camera,
-    getViewport3d(),
-    getCanvasPx(getDims()),
-  )
+  const hit = hitTestPlayers(x, y)
 
   if (hit) {
     selectedPlayerId.value = hit.id
+    hoveredPlayerId.value = null
     drag.value = { type: 'player', playerId: hit.id, lastX: x, lastY: y }
     return
   }
@@ -379,15 +449,18 @@ function onPointerDown(event: PointerEvent) {
   if (props.viewMode !== '3d') return
 
   selectedPlayerId.value = null
+  hoveredPlayerId.value = null
   drag.value = { type: 'orbit', lastX: x, lastY: y }
 }
 
 function onPointerMove(event: PointerEvent) {
+  const point = canvasPoint(event)
+
   if (!activePointers.has(event.pointerId)) {
+    updateHoveredPlayer(point.x, point.y)
     return
   }
 
-  const point = canvasPoint(event)
   activePointers.set(event.pointerId, point)
 
   if (props.drawMode && currentStroke.value && event.pointerId === drawingPointerId.value) {
@@ -474,6 +547,7 @@ function onPointerUp(event: PointerEvent) {
 }
 
 function onPointerLeave(event: PointerEvent) {
+  hoveredPlayerId.value = null
   if (activePointers.has(event.pointerId)) {
     onPointerUp(event)
   }
@@ -547,6 +621,7 @@ watch(
       pinch.value = null
       activePointers.clear()
       selectedPlayerId.value = null
+      hoveredPlayerId.value = null
       Object.assign(camera, DEFAULT_CAMERA_3D)
       viewport3d.value = null
       userViewportPan.value = { x: 0, y: 0 }
@@ -581,6 +656,15 @@ defineExpose({ clearDrawings })
     <canvas ref="courtCanvasRef" class="court-canvas court-canvas--court" />
     <canvas ref="playersCanvasRef" class="court-canvas court-canvas--players" />
     <canvas ref="drawCanvasRef" class="court-canvas court-canvas--draw" />
+
+    <div
+      v-if="hoveredPlayer"
+      class="court-canvas__tooltip"
+      :style="tooltipStyle"
+      role="tooltip"
+    >
+      {{ hoveredPlayer.name }}
+    </div>
   </div>
 </template>
 
@@ -608,6 +692,22 @@ defineExpose({ clearDrawings })
   &.is-drawing {
     cursor: crosshair;
   }
+}
+
+.court-canvas__tooltip {
+  position: absolute;
+  z-index: 2;
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.375rem;
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: rgba(var(--v-theme-on-surface), 0.92);
+  pointer-events: none;
 }
 
 .court-canvas {

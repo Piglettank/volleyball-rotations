@@ -11,6 +11,7 @@ import {
   stepRotationNumber,
   DEFAULT_ROTATION,
   leadingTeam,
+  opponentTeam,
   COURT_ROLE_IDS,
 } from '@/models/match'
 
@@ -178,6 +179,7 @@ export const useMatchStore = defineStore('match', () => {
     s.awayScore = 0
     s.currentSet += 1
     s.sidesSwapped = !s.sidesSwapped
+    s.servingTeam = opponentTeam(s.servingTeam)
 
     saveToStorage(matchState.value)
   }

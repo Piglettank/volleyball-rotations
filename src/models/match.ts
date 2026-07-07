@@ -76,6 +76,10 @@ export function teamOnRight(sidesSwapped: boolean): TeamSide {
   return sidesSwapped ? 'home' : 'away'
 }
 
+export function opponentTeam(team: TeamSide): TeamSide {
+  return team === 'home' ? 'away' : 'home'
+}
+
 /** Returns the team in the lead, or null if tied */
 export function leadingTeam(homeScore: number, awayScore: number): TeamSide | null {
   if (homeScore > awayScore) return 'home'

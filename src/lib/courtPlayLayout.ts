@@ -7,8 +7,10 @@ const PAD = COURT.extraSpaceM / 2
 const HALF_LENGTH_M = COURT.lengthM / 2
 const BASELINE_Z = PAD + COURT.lengthM
 
+export type PlayCourtOrientation = 'horizontal' | 'vertical'
+
 /**
- * Play mode SVG layout (includes free zone, same proportions as learn mode).
+ * Horizontal play mode SVG layout (landscape — home left, away right).
  */
 export const PLAY_COURT_SVG = {
   viewWidth: (COURT.lengthM + COURT.extraSpaceM) * SCALE,
@@ -21,19 +23,58 @@ export const PLAY_COURT_SVG = {
 } as const
 
 /**
- * Learn formations use normalized x/y on the playable court (9 m × 18 m),
- * same as `playerMetersOnCourt` in learn mode.
+ * Vertical play mode SVG layout (portrait — home top, away bottom).
+ */
+export const PLAY_COURT_SVG_VERTICAL = {
+  viewWidth: (COURT.widthM + COURT.extraSpaceM) * SCALE,
+  viewHeight: (COURT.lengthM + COURT.extraSpaceM) * SCALE,
+  padX: PAD * SCALE,
+  padY: PAD * SCALE,
+  courtWidth: COURT.widthM * SCALE,
+  courtHeight: COURT.lengthM * SCALE,
+  netY: (PAD + COURT.lengthM / 2) * SCALE,
+} as const
+
+export function getPlayCourtSvg(orientation: PlayCourtOrientation) {
+  return orientation === 'vertical' ? PLAY_COURT_SVG_VERTICAL : PLAY_COURT_SVG
+}
+
+/**
+ * Learn formations use normalized x/y where y=1 is the home baseline, y=0.5 is the
+ * net, and y=0.5..1 is each team's own half (both home and away use this range).
+ * x=0..1 maps to court width.
  *
- * Play mode rotates the court 90° CCW: home baseline on the left, away on the right.
- * `courtSide` selects which half to draw on (home = left, away = right).
+ * Horizontal orientation: rotates 90° CCW — home baseline left, away right.
+ * Vertical orientation: portrait — home baseline top, away baseline bottom.
+ * `courtSide` ('home' | 'away') selects which half; physicalCourtSide() provides this.
  */
 export function learnToPlaySvgCoord(
   learnCoord: CourtCoordinate,
   courtSide: TeamSide,
+  orientation: PlayCourtOrientation = 'horizontal',
 ): { x: number; y: number } {
   const xLearn = Math.min(Math.max(learnCoord.x, 0), 1)
   const yLearn = Math.min(Math.max(learnCoord.y, 0), 1)
 
+  if (orientation === 'vertical') {
+    const v = PLAY_COURT_SVG_VERTICAL
+    // Away team is mirrored in x (they face the opposite direction)
+    const svgX =
+      courtSide === 'home'
+        ? v.padX + xLearn * v.courtWidth
+        : v.padX + (1 - xLearn) * v.courtWidth
+
+    // Home: y=1 is home baseline (bottom), y=0.5 is net (middle). Clamp at net.
+    // Away: y=1 is away baseline (top), y=0.5 is net (middle). Clamp at net.
+    const svgY =
+      courtSide === 'home'
+        ? v.padY + Math.max(yLearn, 0.5) * v.courtHeight
+        : v.padY + (1 - Math.max(yLearn, 0.5)) * v.courtHeight
+
+    return { x: svgX, y: svgY }
+  }
+
+  // Horizontal (original implementation)
   const learnXM = PAD + xLearn * COURT.widthM
   const learnZM = PAD + yLearn * COURT.lengthM
 

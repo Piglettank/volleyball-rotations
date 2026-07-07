@@ -1,8 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { COURT_COLORS } from '@/components/court/courtGeometry'
-import { PLAY_COURT_DIAGRAM as D } from '@/lib/playCourtDiagram'
+import { getPlayCourtDiagram } from '@/lib/playCourtDiagram'
+import type { PlayCourtOrientation } from '@/lib/courtPlayLayout'
 
-const S = D.strokes
+const props = defineProps<{
+  orientation: PlayCourtOrientation
+}>()
+
+const D = computed(() => getPlayCourtDiagram(props.orientation))
+const S = computed(() => D.value.strokes)
+
 const lineProps = {
   stroke: COURT_COLORS.line,
   'vector-effect': 'non-scaling-stroke',
@@ -29,7 +37,7 @@ const lineProps = {
       vector-effect="non-scaling-stroke"
     />
 
-    <!-- Attack lines (vertical — rotated from learn horizontal) -->
+    <!-- Attack lines -->
     <line
       v-for="(line, i) in D.attackLines"
       :key="`attack-${i}`"
@@ -41,7 +49,7 @@ const lineProps = {
       :stroke-width="S.px"
     />
 
-    <!-- 3 m extensions (vertical dashes in top/bottom margin, aligned with attack lines) -->
+    <!-- 3 m extensions (dashes in margins at attack lines) -->
     <line
       v-for="(line, i) in D.threeMeterExtensions"
       :key="`three-${i}`"
@@ -54,7 +62,7 @@ const lineProps = {
       :stroke-dasharray="S.dash"
     />
 
-    <!-- Sideline corner ticks (horizontal in play) -->
+    <!-- Corner ticks -->
     <line
       v-for="(tick, i) in D.baselineTicks"
       :key="`tick-${i}`"
@@ -66,7 +74,7 @@ const lineProps = {
       :stroke-width="S.px"
     />
 
-    <!-- Center line / net (double stroke, learn 2D) -->
+    <!-- Net (double stroke) -->
     <line
       v-bind="lineProps"
       :x1="D.net.line.x1"
@@ -84,7 +92,7 @@ const lineProps = {
       :stroke-width="S.netLightPx"
     />
 
-    <!-- Net poles (learn 2D) -->
+    <!-- Net poles -->
     <circle :cx="D.net.poleTopX" :cy="D.net.poleTopY" :r="D.net.poleR" :fill="COURT_COLORS.line" />
     <circle :cx="D.net.poleBottomX" :cy="D.net.poleBottomY" :r="D.net.poleR" :fill="COURT_COLORS.line" />
   </g>

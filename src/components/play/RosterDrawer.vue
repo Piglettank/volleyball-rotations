@@ -130,6 +130,7 @@ $desktop-breakpoint: 720px;
   flex: 1;
   overflow-y: auto;
   padding: 1.25rem 1rem 1.5rem;
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
 }
 
 // Backdrop fade

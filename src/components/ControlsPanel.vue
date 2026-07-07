@@ -90,10 +90,7 @@ function resetLayout() {
 
 <template>
   <v-sheet class="controls-panel" elevation="1" rounded="0">
-    <div class="app-logo">
-      <img class="app-logo__icon" src="/favicon.ico" alt="" width="44" height="44" />
-      <span class="app-logo__title">Rotations</span>
-    </div>
+    <h1 class="controls-panel__title">Rotations</h1>
 
     <div class="panel-section formation-row">
       <v-select
@@ -243,22 +240,9 @@ $desktop-breakpoint: 801px;
   }
 }
 
-.app-logo {
+.controls-panel__title {
   display: none;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.app-logo__icon {
-  flex-shrink: 0;
-  width: 3.25rem;
-  height: 3.25rem;
-  border-radius: 50%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.app-logo__title {
+  margin: 0;
   font-family: var(--font-sport-display);
   font-size: 1.875rem;
   font-weight: 400;
@@ -372,8 +356,8 @@ $desktop-breakpoint: 801px;
     border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   }
 
-  .app-logo {
-    display: flex;
+  .controls-panel__title {
+    display: block;
   }
 }
 

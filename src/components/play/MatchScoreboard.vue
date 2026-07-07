@@ -606,4 +606,63 @@ function toggleSides() {
     }
   }
 }
+
+@media (max-width: 640px) {
+  .scoreboard {
+    gap: 0.4rem 0.75rem;
+    padding: 0.4rem 0.75rem 0.25rem;
+  }
+
+  .scoreboard--planning {
+    gap: 0.2rem 0.75rem;
+  }
+
+  .scoreboard__name {
+    font-size: 1.25rem;
+  }
+
+  .scoreboard__name-input {
+    font-size: 1.25rem;
+    max-width: 7rem;
+  }
+
+  .scoreboard__points-big {
+    font-size: 2.75rem;
+    min-width: 1.5ch;
+  }
+
+  .scoreboard__sets {
+    font-size: 1rem;
+    gap: 0.35rem;
+  }
+
+  .scoreboard__board {
+    min-height: 2.75rem;
+    gap: 0.15rem 0.25rem;
+  }
+
+  .scoreboard__rotation-num {
+    font-size: 0.6875rem;
+  }
+
+  .scoreboard__rotation-btn {
+    width: 1.375rem;
+    height: 1.375rem;
+  }
+
+  .scoreboard__serve-badge {
+    font-size: 0.625rem;
+    padding: 0.2rem 0.45rem;
+    gap: 0.25rem;
+
+    :deep(.v-icon) {
+      font-size: 0.625rem !important;
+    }
+  }
+
+  .scoreboard__switch-sides {
+    font-size: 0.5625rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
 </style>

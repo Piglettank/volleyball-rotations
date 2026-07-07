@@ -1,5 +1,6 @@
 import { COURT } from '@/components/court/courtGeometry'
-import { PLAY_COURT_SVG } from '@/lib/courtPlayLayout'
+import { PLAY_COURT_SVG, PLAY_COURT_SVG_VERTICAL } from '@/lib/courtPlayLayout'
+import type { PlayCourtOrientation } from '@/lib/courtPlayLayout'
 
 /** SVG user units per meter — same as courtPlayLayout SCALE. */
 const SCALE = 10
@@ -123,3 +124,85 @@ export const PLAY_COURT_DIAGRAM = {
     poleR: POLE_R,
   },
 } as const
+
+// ── Vertical diagram (portrait — home top, away bottom) ──────────────────────
+
+const {
+  padX: V_PAD_X,
+  padY: V_PAD_Y,
+  courtWidth: V_COURT_W,
+  courtHeight: V_COURT_H,
+  viewWidth: V_VW,
+  viewHeight: V_VH,
+} = PLAY_COURT_SVG_VERTICAL
+
+/**
+ * Vertical: learn coords map directly to SVG axes (no rotation).
+ * x = court width → SVG x; z = court length → SVG y.
+ */
+function vertLearnToSvg(learnXM: number, learnZM: number): Pt {
+  return {
+    x: V_PAD_X + (learnXM - PAD) * SCALE,
+    y: V_PAD_Y + (learnZM - PAD) * SCALE,
+  }
+}
+
+function vertSegment(lx1: number, lz1: number, lx2: number, lz2: number): Segment {
+  const a = vertLearnToSvg(lx1, lz1)
+  const b = vertLearnToSvg(lx2, lz2)
+  return { x1: a.x, y1: a.y, x2: b.x, y2: b.y }
+}
+
+/** Horizontal attack lines at 3 m and 15 m from top. */
+const vAttackLines = [
+  vertSegment(x0, attackTop, x1, attackTop),
+  vertSegment(x0, attackBottom, x1, attackBottom),
+] as const
+
+/** Short dashes in left/right margins at attack-line heights. */
+const vThreeMeterExtensions = [
+  vertSegment(threeLeftX0, attackTop, threeLeftX1, attackTop),
+  vertSegment(threeLeftX0, attackBottom, threeLeftX1, attackBottom),
+  vertSegment(threeRightX0, attackTop, threeRightX1, attackTop),
+  vertSegment(threeRightX0, attackBottom, threeRightX1, attackBottom),
+] as const
+
+/** Short vertical ticks just outside each corner of the court. */
+const vBaselineTicks = [
+  vertSegment(x0, baseZTop, x0, baseZTop + BASE_TICK_LEN),
+  vertSegment(x1, baseZTop, x1, baseZTop + BASE_TICK_LEN),
+  vertSegment(x0, baseZBottom, x0, baseZBottom - BASE_TICK_LEN),
+  vertSegment(x1, baseZBottom, x1, baseZBottom - BASE_TICK_LEN),
+] as const
+
+const vNetLine = vertSegment(x0 - NET_OVERHANG_M, midZ, x1 + NET_OVERHANG_M, midZ)
+/** Poles on left/right sidelines at net height. */
+const vNetPoleLeft = vertLearnToSvg(poleLeftX, midZ)
+const vNetPoleRight = vertLearnToSvg(poleRightX, midZ)
+
+export const PLAY_COURT_DIAGRAM_VERTICAL = {
+  vw: V_VW,
+  vh: V_VH,
+  padX: V_PAD_X,
+  padY: V_PAD_Y,
+  courtW: V_COURT_W,
+  courtH: V_COURT_H,
+  strokes: PLAY_COURT_STROKES,
+
+  attackLines: vAttackLines,
+  threeMeterExtensions: vThreeMeterExtensions,
+  baselineTicks: vBaselineTicks,
+
+  net: {
+    line: vNetLine,
+    poleTopX: vNetPoleLeft.x,
+    poleTopY: vNetPoleLeft.y,
+    poleBottomX: vNetPoleRight.x,
+    poleBottomY: vNetPoleRight.y,
+    poleR: POLE_R,
+  },
+} as const
+
+export function getPlayCourtDiagram(orientation: PlayCourtOrientation) {
+  return orientation === 'vertical' ? PLAY_COURT_DIAGRAM_VERTICAL : PLAY_COURT_DIAGRAM
+}

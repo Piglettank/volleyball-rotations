@@ -35,12 +35,7 @@ function goToLearn() {
             </span>
           </v-btn>
 
-          <v-btn
-            class="home__menu-btn"
-            variant="outlined"
-            density="comfortable"
-            @click="goToLearn"
-          >
+          <v-btn class="home__menu-btn" variant="outlined" density="comfortable" @click="goToLearn">
             <span class="home__menu-btn-content">
               <v-icon icon="fas fa-graduation-cap" size="small" />
               <span class="home__menu-label">Learn</span>
@@ -64,7 +59,8 @@ function goToLearn() {
 </template>
 
 <style scoped lang="scss">
-$sidebar-width: min(28rem, 38vw);
+$sidebar-width: min(36rem, 44vw);
+$desktop-breakpoint: 801px;
 $mobile-breakpoint: 640px;
 
 .home-main {
@@ -95,7 +91,7 @@ $mobile-breakpoint: 640px;
   flex-direction: column;
   justify-content: center;
   gap: 2rem;
-  padding: 2rem 1.5rem;
+  padding: 1.25rem;
   background: rgb(var(--v-theme-surface));
   border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
@@ -124,6 +120,7 @@ $mobile-breakpoint: 640px;
   letter-spacing: 0.03em;
   line-height: 1;
   color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
+  transform: translateY(0.06em);
 }
 
 .home__menu {
@@ -173,6 +170,8 @@ $mobile-breakpoint: 640px;
   font-size: 1.375rem;
   letter-spacing: 0.04em;
   line-height: 1;
+  // Adjusted for font offset
+  transform: translateY(0.05em);
 }
 
 .home__menu-hint {
@@ -200,6 +199,12 @@ $mobile-breakpoint: 640px;
   object-position: center;
 }
 
+@media (max-width: ($desktop-breakpoint - 1px)) {
+  .home__sidebar {
+    padding: 0.75rem;
+  }
+}
+
 @media (max-width: $mobile-breakpoint) {
   .home {
     display: flex;
@@ -213,7 +218,6 @@ $mobile-breakpoint: 640px;
   .home__sidebar {
     flex: 1;
     width: 100%;
-    padding: 2rem 1.75rem;
     border-right: none;
     border-bottom: none;
     justify-content: center;

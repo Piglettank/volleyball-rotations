@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useProfileStore } from '@/stores/profile'
 import { UNCATEGORIZED_FOLDER_ID } from '@/models/profile'
+import ConfirmDialog from '@/components/play/ConfirmDialog.vue'
 
 type Props = {
   selectedPlayerIds?: string[]
@@ -23,7 +24,10 @@ const showAddFolder = ref(false)
 const folderNameFieldRef = ref<{ focus: () => void; $el: HTMLElement } | null>(null)
 const dragPlayerId = ref<string | null>(null)
 const dragOverFolderId = ref<string | null>(null)
+const suppressPlayerClick = ref(false)
 const collapsedFolderIds = ref<Set<string>>(new Set())
+const showDeleteFolderDialog = ref(false)
+const folderPendingDelete = ref<{ id: string; name: string; playerCount: number } | null>(null)
 
 function toggleFolderCollapsed(folderId: string) {
   const next = new Set(collapsedFolderIds.value)
@@ -104,6 +108,41 @@ function onDrop(targetFolderId: string, event: DragEvent) {
 function onDragEnd() {
   dragPlayerId.value = null
   dragOverFolderId.value = null
+  suppressPlayerClick.value = true
+  window.setTimeout(() => {
+    suppressPlayerClick.value = false
+  }, 0)
+}
+
+function onPlayerCardClick(playerId: string) {
+  if (suppressPlayerClick.value) return
+  togglePlayerSelected(playerId)
+}
+
+function requestRemoveFolder(folder: { id: string; name: string; players: unknown[] }) {
+  if (folder.players.length === 0) {
+    profileStore.removeFolder(folder.id)
+    return
+  }
+
+  folderPendingDelete.value = {
+    id: folder.id,
+    name: folder.name,
+    playerCount: folder.players.length,
+  }
+  showDeleteFolderDialog.value = true
+}
+
+function confirmRemoveFolder() {
+  if (!folderPendingDelete.value) return
+  profileStore.removeFolder(folderPendingDelete.value.id)
+  folderPendingDelete.value = null
+  showDeleteFolderDialog.value = false
+}
+
+function cancelRemoveFolder() {
+  folderPendingDelete.value = null
+  showDeleteFolderDialog.value = false
 }
 
 const foldersWithPlayers = computed(() =>
@@ -111,7 +150,8 @@ const foldersWithPlayers = computed(() =>
     ...folder,
     players: folder.playerIds
       .map((id) => profileStore.getPlayerById(id))
-      .filter(Boolean) as NonNullable<ReturnType<typeof profileStore.getPlayerById>>[],
+      .filter((p): p is NonNullable<typeof p> => p != null)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
   })),
 )
 </script>
@@ -175,7 +215,7 @@ const foldersWithPlayers = computed(() =>
             variant="plain"
             size="small"
             :aria-label="`Remove folder ${folder.name}`"
-            @click.stop="profileStore.removeFolder(folder.id)"
+            @click.stop="requestRemoveFolder(folder)"
           />
         </div>
 
@@ -190,7 +230,12 @@ const foldersWithPlayers = computed(() =>
               :key="player.id"
               class="roster-manager__player"
               :class="{ 'roster-manager__player--selected': selectedPlayerIds.includes(player.id) }"
+              role="button"
+              tabindex="0"
               draggable="true"
+              @click="onPlayerCardClick(player.id)"
+              @keydown.enter.prevent="togglePlayerSelected(player.id)"
+              @keydown.space.prevent="togglePlayerSelected(player.id)"
               @dragstart="onDragStart(player.id)"
               @dragend="onDragEnd"
             >
@@ -198,8 +243,8 @@ const foldersWithPlayers = computed(() =>
                 :model-value="selectedPlayerIds.includes(player.id)"
                 density="compact"
                 hide-details
+                tabindex="-1"
                 class="roster-manager__checkbox"
-                @update:model-value="togglePlayerSelected(player.id)"
               />
               <span class="roster-manager__player-name">{{ player.name }}</span>
               <v-btn
@@ -256,6 +301,37 @@ const foldersWithPlayers = computed(() =>
         Add folder
       </v-btn>
     </div>
+
+    <ConfirmDialog
+      v-model="showDeleteFolderDialog"
+      title="Delete folder?"
+      icon="fas fa-folder-minus"
+      @close="cancelRemoveFolder"
+    >
+      <p v-if="folderPendingDelete">
+        Delete <strong>{{ folderPendingDelete.name }}</strong>?
+        {{ folderPendingDelete.playerCount }}
+        {{ folderPendingDelete.playerCount === 1 ? 'player' : 'players' }}
+        will be moved to <strong>Players</strong>.
+      </p>
+
+      <template #actions>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--ghost"
+          @click="cancelRemoveFolder"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--away"
+          @click="confirmRemoveFolder"
+        >
+          Delete folder
+        </button>
+      </template>
+    </ConfirmDialog>
   </div>
 </template>
 
@@ -403,7 +479,7 @@ const foldersWithPlayers = computed(() =>
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 0.4375rem;
   background: rgb(var(--v-theme-surface));
-  cursor: grab;
+  cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 
   &:hover {
@@ -415,14 +491,11 @@ const foldersWithPlayers = computed(() =>
     border-color: rgba(var(--v-theme-primary), 0.3);
     background: rgb(var(--v-theme-accent));
   }
-
-  &:active {
-    cursor: grabbing;
-  }
 }
 
 .roster-manager__checkbox {
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .roster-manager__player-name {

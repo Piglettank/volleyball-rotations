@@ -5,7 +5,8 @@ import MatchScoreboard from '@/components/play/MatchScoreboard.vue'
 import MatchCourt from '@/components/play/MatchCourt.vue'
 import PlayerAssignPopover from '@/components/play/PlayerAssignPopover.vue'
 import RosterDrawer from '@/components/play/RosterDrawer.vue'
-import { COURT_COLORS } from '@/components/court/courtGeometry'
+import ConfirmDialog from '@/components/play/ConfirmDialog.vue'
+import { COURT_COLORS, APP_THEME_COLORS } from '@/components/court/courtGeometry'
 import { useMatchStore } from '@/stores/match'
 import { isSetEndEligible, leadingTeam, teamOnLeft, teamOnRight } from '@/models/match'
 import type { TeamSide } from '@/models/match'
@@ -17,6 +18,7 @@ const s = computed(() => matchStore.state!)
 
 const leftTeam = computed(() => teamOnLeft(s.value.sidesSwapped))
 const rightTeam = computed(() => teamOnRight(s.value.sidesSwapped))
+const isPlanning = computed(() => matchStore.canAdjustRotation)
 
 function teamName(team: TeamSide) {
   return team === 'home' ? s.value.config.homeTeamName : s.value.config.awayTeamName
@@ -92,25 +94,29 @@ function confirmSetComplete(winner?: TeamSide) {
 // ── Auto 25+ prompt ──────────────────────────────────────────────────────────
 
 const showAutoEndPrompt = ref(false)
-// Track the score pair that triggered the prompt so it doesn't re-fire at the same score
-const autoEndDismissedAt = ref<{ home: number; away: number } | null>(null)
+/** Set number for which the auto end prompt has already been shown */
+const autoEndPromptShownForSet = ref<number | null>(null)
 
 watch(
-  () => ({ home: s.value?.homeScore ?? 0, away: s.value?.awayScore ?? 0 }),
-  ({ home, away }) => {
-    if (!isSetEndEligible(home, away)) {
-      autoEndDismissedAt.value = null
-      return
+  () => ({
+    home: s.value?.homeScore ?? 0,
+    away: s.value?.awayScore ?? 0,
+    currentSet: s.value?.currentSet ?? 1,
+  }),
+  ({ home, away, currentSet }) => {
+    if (autoEndPromptShownForSet.value !== currentSet) {
+      showAutoEndPrompt.value = false
     }
-    const dismissed = autoEndDismissedAt.value
-    if (dismissed && dismissed.home === home && dismissed.away === away) return
+
+    if (!isSetEndEligible(home, away)) return
+    if (autoEndPromptShownForSet.value === currentSet) return
+
+    autoEndPromptShownForSet.value = currentSet
     showAutoEndPrompt.value = true
   },
-  { deep: true },
 )
 
 function dismissAutoEnd() {
-  autoEndDismissedAt.value = { home: s.value.homeScore, away: s.value.awayScore }
   showAutoEndPrompt.value = false
 }
 
@@ -126,6 +132,7 @@ function acceptAutoEnd() {
       <!-- Court -->
       <div class="match-court-wrapper">
         <MatchCourt @player-click="onPlayerClick" />
+        <p v-if="isPlanning" class="match-planning-label">Planning mode</p>
       </div>
 
       <!-- Score & controls -->
@@ -196,56 +203,74 @@ function acceptAutoEnd() {
     </div>
 
     <!-- Set complete dialog -->
-    <v-dialog v-model="showSetCompleteDialog" max-width="320">
-      <v-card>
-        <v-card-title class="set-dialog__title">Complete set</v-card-title>
-        <v-card-text v-if="setCompleteLeader">
-          Award this set to <strong>{{ setCompleteLeaderName }}</strong>?
-        </v-card-text>
-        <v-card-text v-else>
-          Scores are tied — pick a winner:
-        </v-card-text>
-        <v-card-actions v-if="setCompleteLeader">
-          <v-spacer />
-          <v-btn variant="text" @click="showSetCompleteDialog = false">Cancel</v-btn>
-          <v-btn variant="flat" color="primary" @click="confirmSetComplete()">Confirm</v-btn>
-        </v-card-actions>
-        <v-card-actions v-else>
-          <v-btn
-            variant="flat"
-            color="primary"
-            class="set-dialog__pick-btn"
-            @click="confirmSetComplete('home')"
-          >
-            {{ s.config.homeTeamName }}
-          </v-btn>
-          <v-btn
-            variant="flat"
-            color="error"
-            class="set-dialog__pick-btn"
-            @click="confirmSetComplete('away')"
-          >
-            {{ s.config.awayTeamName }}
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <ConfirmDialog
+      v-model="showSetCompleteDialog"
+      title="Complete set"
+      icon="fas fa-flag-checkered"
+    >
+      <p v-if="setCompleteLeader">
+        Award this set to <strong>{{ setCompleteLeaderName }}</strong>?
+      </p>
+      <p v-else>Scores are tied — pick a winner:</p>
+
+      <template v-if="setCompleteLeader" #actions>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--ghost"
+          @click="showSetCompleteDialog = false"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--primary"
+          @click="confirmSetComplete()"
+        >
+          Confirm
+        </button>
+      </template>
+      <template v-else #actions>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--home"
+          @click="confirmSetComplete('home')"
+        >
+          {{ s.config.homeTeamName }}
+        </button>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--away"
+          @click="confirmSetComplete('away')"
+        >
+          {{ s.config.awayTeamName }}
+        </button>
+      </template>
+    </ConfirmDialog>
 
     <!-- Auto 25+ end-set prompt -->
-    <v-dialog v-model="showAutoEndPrompt" max-width="320">
-      <v-card>
-        <v-card-title class="set-dialog__title">End this set?</v-card-title>
-        <v-card-text>
-          <strong>{{ setCompleteLeaderName }}</strong> leads
-          {{ s.homeScore }}–{{ s.awayScore }}.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="dismissAutoEnd">Keep playing</v-btn>
-          <v-btn variant="flat" color="primary" @click="acceptAutoEnd">End set</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <ConfirmDialog v-model="showAutoEndPrompt" title="End this set?" icon="fas fa-volleyball">
+      <p>
+        <strong>{{ setCompleteLeaderName }}</strong> leads
+        {{ s.homeScore }}–{{ s.awayScore }}.
+      </p>
+
+      <template #actions>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--ghost"
+          @click="dismissAutoEnd"
+        >
+          Keep playing
+        </button>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--primary"
+          @click="acceptAutoEnd"
+        >
+          End set
+        </button>
+      </template>
+    </ConfirmDialog>
 
     <!-- Player assign popover (teleported to body to avoid clip) -->
     <Teleport to="body">
@@ -285,6 +310,7 @@ function acceptAutoEnd() {
 }
 
 .match-court-wrapper {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -292,6 +318,27 @@ function acceptAutoEnd() {
   justify-content: stretch;
   padding: 0.5rem;
   background: v-bind('COURT_COLORS.outside');
+}
+
+.match-planning-label {
+  position: absolute;
+  left: 50%;
+  bottom: 0.35rem;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: v-bind('APP_THEME_COLORS.text');
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 10px rgba(26, 42, 58, 0.35);
 }
 
 .match-bottom {
@@ -469,12 +516,49 @@ function acceptAutoEnd() {
   }
 }
 
-.set-dialog__title {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
+@media (max-width: 640px) {
+  .match-court-wrapper {
+    padding: 0.25rem;
+  }
 
-.set-dialog__pick-btn {
-  flex: 1;
+  .match-controls {
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem 0.5rem;
+  }
+
+  .match-point-btn {
+    min-height: 2.75rem;
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .match-point-btn__value {
+    font-size: 1.125rem;
+  }
+
+  .match-point-btn__team {
+    font-size: 0.625rem;
+  }
+
+  .match-undo-btn {
+    border-radius: 0.5rem;
+    padding: 0.4rem;
+  }
+
+  .match-footer {
+    gap: 0.35rem;
+    padding: 0 0.5rem 0.5rem;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem));
+  }
+
+  .match-footer-btn {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    gap: 0.3rem;
+  }
+
+  .match-bottom {
+    padding-bottom: 0;
+  }
 }
 </style>

@@ -98,6 +98,24 @@ export function findPlayerAtPoint(
   return closest?.player ?? null
 }
 
+export function getPlayerMarkerScreenCenter(
+  player: PlayerModel,
+  mode: ViewMode,
+  meter: number,
+  camera: Camera3D,
+  viewport3d?: ProjectViewport,
+  canvas?: ProjectionCanvas,
+): { x: number; y: number; radius: number } {
+  const { xM, zM } = playerMetersOnCourt(player)
+  if (mode === '3d') {
+    const marker = getPlayerMarker3dScreen(xM, zM, meter, camera, viewport3d, canvas)
+    return { x: marker.head.x, y: marker.head.y, radius: marker.radius }
+  }
+
+  const screen = project(xM, zM, 0, mode, meter, ORIGIN, camera)
+  return { x: screen.x, y: screen.y, radius: playerMarkerRadius2d(meter) }
+}
+
 export function applyScreenDeltaToCourtMeters(
   xM: number,
   zM: number,
