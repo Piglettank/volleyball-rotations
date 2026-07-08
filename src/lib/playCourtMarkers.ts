@@ -1,5 +1,6 @@
 import { COURT, PLAYER_MARKER_3D } from '@/components/court/courtGeometry'
 import { PLAY_COURT_SVG } from '@/lib/courtPlayLayout'
+import { APP_THEME_COLORS } from '@/styles/theme'
 
 const SCALE = 10
 const COURT_WIDTH_UNITS = COURT.widthM * SCALE
@@ -11,6 +12,6 @@ export const PLAY_MARKER_STROKE_PX = 2
 export const PLAY_BALL_RADIUS = COURT_WIDTH_UNITS * 0.033
 
 export const PLAY_TEAM_COLORS = {
-  home: { fill: 'rgba(26, 42, 58, 0.92)', stroke: '#ffffff' },
-  away: { fill: 'rgba(139, 26, 26, 0.92)', stroke: '#ffffff' },
+  home: { fill: APP_THEME_COLORS.home, stroke: '#ffffff' },
+  away: { fill: APP_THEME_COLORS.away, stroke: '#ffffff' },
 } as const

@@ -216,22 +216,33 @@ onUnmounted(() => {
   }
 
   &--home {
-    background: rgb(var(--v-theme-primary));
-    border-color: rgb(var(--v-theme-primary));
-    color: rgb(var(--v-theme-on-primary));
+    background: rgb(var(--v-theme-home));
+    border-color: rgb(var(--v-theme-home));
+    color: rgb(var(--v-theme-on-home));
 
     &:hover {
-      filter: brightness(1.05);
+      filter: brightness(1.1);
     }
   }
 
   &--away {
-    background: rgb(var(--v-theme-error));
-    border-color: rgb(var(--v-theme-error));
-    color: rgb(var(--v-theme-on-error));
+    background: rgb(var(--v-theme-away));
+    border-color: rgb(var(--v-theme-away));
+    color: rgb(var(--v-theme-on-away));
 
     &:hover {
-      filter: brightness(1.05);
+      filter: brightness(1.1);
+    }
+  }
+
+  &--end {
+    background: rgba(var(--v-theme-error), 0.12);
+    border-color: rgba(var(--v-theme-error), 0.45);
+    color: rgb(var(--v-theme-error));
+
+    &:hover {
+      background: rgba(var(--v-theme-error), 0.2);
+      border-color: rgb(var(--v-theme-error));
     }
   }
 }

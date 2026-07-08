@@ -30,25 +30,6 @@ export const COURT_COLORS = {
   playerPinHighlight: '#ffd166',
 } as const
 
-/**
- * UI theme tokens — orange brand derived from the court surface.
- * Teal (outside zone) stays on the court; not used for buttons or chrome.
- */
-export const APP_THEME_COLORS = {
-  /** Main action color — softened court orange, white text */
-  primary: '#c9891f',
-  onPrimary: '#ffffff',
-  /** Selected toggles, light highlights */
-  primaryContainer: '#f7edd8',
-  onPrimaryContainer: '#6b4a10',
-  /** Neutrals */
-  text: '#1a2a3a',
-  textMuted: '#5c6b7a',
-  surface: '#ffffff',
-  background: '#f7f8f9',
-  surfaceVariant: '#eef0f2',
-  border: '#dce1e6',
-} as const
 
 /** Flat circle markers on the 2D court (screen pixels). */
 export const PLAYER_MARKER_2D = {

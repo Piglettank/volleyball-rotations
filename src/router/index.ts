@@ -68,6 +68,9 @@ const router = createRouter({
           matchStore.startMatch()
         }
       },
+      children: [
+        { path: 'players', name: 'play-players' },
+      ],
     },
   ],
 })

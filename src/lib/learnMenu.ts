@@ -17,11 +17,11 @@ export const learnMenuItems: LearnMenuItem[] = [
     fallbackIcon: 'fas fa-circle-dot',
   },
   {
-    category: 'spike',
-    label: 'Spike',
-    routeName: 'learn-spike',
-    imagePath: '/menu-spike.png',
-    fallbackIcon: 'fas fa-bolt',
+    category: 'receive',
+    label: 'Receive',
+    routeName: 'learn-receive',
+    imagePath: '/menu-receive.png',
+    fallbackIcon: 'fas fa-hand-fist',
   },
   {
     category: 'set',
@@ -31,11 +31,11 @@ export const learnMenuItems: LearnMenuItem[] = [
     fallbackIcon: 'fas fa-hands',
   },
   {
-    category: 'receive',
-    label: 'Receive',
-    routeName: 'learn-receive',
-    imagePath: '/menu-receive.png',
-    fallbackIcon: 'fas fa-hand-fist',
+    category: 'spike',
+    label: 'Spike',
+    routeName: 'learn-spike',
+    imagePath: '/menu-spike.png',
+    fallbackIcon: 'fas fa-bolt',
   },
   {
     category: 'rotations',

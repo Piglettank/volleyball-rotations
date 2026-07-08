@@ -19,7 +19,7 @@ export type Camera3D = {
 export const DEFAULT_CAMERA_3D: Camera3D = {
   yaw: -0.55,
   pitch: 0.52,
-  zoom: 1,
+  zoom: 1.2,
 }
 
 /** Starting 3D camera on the learn rotations page. */

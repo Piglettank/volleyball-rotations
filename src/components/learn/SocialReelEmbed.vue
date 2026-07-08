@@ -20,8 +20,8 @@ const youtubeEmbedSrc = computed(() => {
   const id = extractYouTubeId(props.url)
   if (!id) return null
   return props.active
-    ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&rel=0`
-    : `https://www.youtube.com/embed/${id}?rel=0`
+    ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&rel=0&controls=0&playsinline=1&iv_load_policy=3`
+    : `https://www.youtube.com/embed/${id}?rel=0&controls=0&playsinline=1&iv_load_policy=3`
 })
 
 // Instagram — clear src when inactive to stop playback

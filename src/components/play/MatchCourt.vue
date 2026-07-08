@@ -19,6 +19,7 @@ import {
   PLAY_MARKER_STROKE_PX,
   PLAY_TEAM_COLORS,
 } from '@/lib/playCourtMarkers'
+import { APP_THEME_COLORS } from '@/styles/theme'
 import PlayCourtSurface from '@/components/play/PlayCourtSurface.vue'
 import { usePlayCourtOrientation } from '@/composables/usePlayCourtOrientation'
 import { abbreviationFromName } from '@/models/profile'
@@ -505,7 +506,7 @@ onUnmounted(() => {
           :cy="ballPosition.y"
           :r="ballRadius"
           fill="#ffffff"
-          stroke="#c62828"
+          :stroke="APP_THEME_COLORS.primary"
           :stroke-width="PLAY_MARKER_STROKE_PX"
           vector-effect="non-scaling-stroke"
         />

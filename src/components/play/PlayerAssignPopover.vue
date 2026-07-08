@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useMatchStore } from '@/stores/match'
 import { useProfileStore } from '@/stores/profile'
+import { ROLE_DISPLAY } from '@/lib/matchRotation'
 import type { TeamSide } from '@/models/match'
 
 type Props = {
@@ -16,6 +17,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   close: []
+  openPlayers: []
 }>()
 
 const matchStore = useMatchStore()
@@ -31,9 +33,33 @@ const rosterPlayers = computed(() => {
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
 })
 
+// Reverse map: playerId → roleId they're already on for this team (excluding this slot)
+const takenByOther = computed<Record<string, string>>(() => {
+  const assignments =
+    props.team === 'home'
+      ? matchStore.state?.homeAssignments
+      : matchStore.state?.awayAssignments
+  if (!assignments) return {}
+  const result: Record<string, string> = {}
+  for (const [roleId, playerId] of Object.entries(assignments)) {
+    if (playerId && roleId !== props.roleId) {
+      result[playerId] = roleId
+    }
+  }
+  return result
+})
+
+function takenRoleName(roleId: string): string {
+  return ROLE_DISPLAY[roleId]?.name ?? roleId
+}
+
 const listItems = computed(() => [
-  { title: 'Unassigned', value: null as string | null },
-  ...rosterPlayers.value.map((player) => ({ title: player.name, value: player.id })),
+  { title: 'Unassigned', value: null as string | null, takenRoleId: null as string | null },
+  ...rosterPlayers.value.map((player) => ({
+    title: player.name,
+    value: player.id,
+    takenRoleId: takenByOther.value[player.id] ?? null,
+  })),
 ])
 
 const currentAssignment = computed(() => {
@@ -112,13 +138,25 @@ onUnmounted(() => {
         active-color="primary"
         @click="onSelect(item.value)"
       >
-        <v-list-item-title>{{ item.title }}</v-list-item-title>
+        <v-list-item-title class="assign-popover__item-row">
+          <span>{{ item.title }}</span>
+          <span v-if="item.takenRoleId" class="assign-popover__taken-badge">
+            {{ takenRoleName(item.takenRoleId) }}
+          </span>
+        </v-list-item-title>
       </v-list-item>
 
-      <v-list-item v-if="rosterPlayers.length === 0" disabled>
-        <v-list-item-title class="assign-popover__empty">Add players in Players</v-list-item-title>
-      </v-list-item>
     </v-list>
+
+    <div class="assign-popover__footer">
+      <button
+        type="button"
+        class="assign-popover__open-players-btn"
+        @click="emit('openPlayers')"
+      >
+        + Add players
+      </button>
+    </div>
   </div>
 </template>
 
@@ -154,8 +192,40 @@ onUnmounted(() => {
   padding: 0.25rem 0;
 }
 
-.assign-popover__empty {
-  font-style: italic;
-  opacity: 0.5;
+.assign-popover__item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.assign-popover__taken-badge {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  white-space: nowrap;
+}
+
+.assign-popover__footer {
+  padding: 0.35rem 0.75rem 0.5rem;
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.assign-popover__open-players-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  cursor: pointer;
+  transition: color 0.15s;
+
+  &:hover {
+    color: rgba(var(--v-theme-on-surface), 0.75);
+  }
 }
 </style>

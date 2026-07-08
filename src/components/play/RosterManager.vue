@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { useProfileStore } from '@/stores/profile'
+import { useMatchStore } from '@/stores/match'
+import { ROLE_DISPLAY } from '@/lib/matchRotation'
 import { UNCATEGORIZED_FOLDER_ID } from '@/models/profile'
+import type { TeamSide } from '@/models/match'
 import ConfirmDialog from '@/components/play/ConfirmDialog.vue'
 
 type Props = {
@@ -17,6 +20,25 @@ const emit = defineEmits<{
 }>()
 
 const profileStore = useProfileStore()
+const matchStore = useMatchStore()
+
+// Map of playerId → list of { team, roleId } for all current assignments
+const playerAssignments = computed(() => {
+  const s = matchStore.state
+  const result: Record<string, { team: TeamSide; roleId: string }[]> = {}
+  if (!s) return result
+  for (const [roleId, playerId] of Object.entries(s.homeAssignments)) {
+    if (playerId) {
+      ;(result[playerId] ??= []).push({ team: 'home', roleId })
+    }
+  }
+  for (const [roleId, playerId] of Object.entries(s.awayAssignments)) {
+    if (playerId) {
+      ;(result[playerId] ??= []).push({ team: 'away', roleId })
+    }
+  }
+  return result
+})
 
 const newPlayerName = ref('')
 const newFolderName = ref('')
@@ -77,9 +99,31 @@ function removePlayer(id: string) {
 function togglePlayerSelected(id: string) {
   const selected = props.selectedPlayerIds
   if (selected.includes(id)) {
-    emit('update:selectedPlayerIds', selected.filter((pid) => pid !== id))
+    emit(
+      'update:selectedPlayerIds',
+      selected.filter((pid) => pid !== id),
+    )
   } else {
     emit('update:selectedPlayerIds', [...selected, id])
+  }
+}
+
+function isFolderAllSelected(folder: { players: { id: string }[] }): boolean {
+  if (folder.players.length === 0) return false
+  return folder.players.every((p) => props.selectedPlayerIds.includes(p.id))
+}
+
+function toggleFolderSelection(folder: { players: { id: string }[] }) {
+  if (isFolderAllSelected(folder)) {
+    const folderIds = new Set(folder.players.map((p) => p.id))
+    emit(
+      'update:selectedPlayerIds',
+      props.selectedPlayerIds.filter((id) => !folderIds.has(id)),
+    )
+  } else {
+    const currentSet = new Set(props.selectedPlayerIds)
+    const toAdd = folder.players.map((p) => p.id).filter((id) => !currentSet.has(id))
+    emit('update:selectedPlayerIds', [...props.selectedPlayerIds, ...toAdd])
   }
 }
 
@@ -195,6 +239,19 @@ const foldersWithPlayers = computed(() =>
         @drop="onDrop(folder.id, $event)"
       >
         <div class="roster-manager__folder-header">
+          <!-- Select-all checkbox — aligns with the player checkboxes below -->
+          <div class="roster-manager__folder-select-all" @click.stop>
+            <v-checkbox
+              :model-value="folder.players.length > 0 && isFolderAllSelected(folder)"
+              :disabled="folder.players.length === 0"
+              density="compact"
+              hide-details
+              tabindex="-1"
+              :aria-label="`Select all players in ${folder.name}`"
+              @update:model-value="toggleFolderSelection(folder)"
+            />
+          </div>
+
           <button
             class="roster-manager__folder-toggle"
             :aria-expanded="!collapsedFolderIds.has(folder.id)"
@@ -202,13 +259,18 @@ const foldersWithPlayers = computed(() =>
             @click="toggleFolderCollapsed(folder.id)"
           >
             <v-icon
-              :icon="collapsedFolderIds.has(folder.id) ? 'fas fa-chevron-right' : 'fas fa-chevron-down'"
-              size="small"
+              :icon="collapsedFolderIds.has(folder.id) ? 'fas fa-caret-right' : 'fas fa-caret-down'"
+              size="x-small"
               class="roster-manager__chevron"
             />
-            <span class="roster-manager__folder-name">{{ folder.name }}</span>
-            <span class="roster-manager__folder-count">{{ folder.players.length }}</span>
+            <span class="roster-manager__folder-name"
+              >{{ folder.name
+              }}<span class="roster-manager__folder-inline-count">
+                ({{ folder.players.length }})</span
+              ></span
+            >
           </button>
+
           <v-btn
             v-if="folder.id !== UNCATEGORIZED_FOLDER_ID"
             icon="fas fa-trash"
@@ -247,6 +309,15 @@ const foldersWithPlayers = computed(() =>
                 class="roster-manager__checkbox"
               />
               <span class="roster-manager__player-name">{{ player.name }}</span>
+              <span
+                v-for="a in (playerAssignments[player.id] ?? [])"
+                :key="`${a.team}-${a.roleId}`"
+                class="roster-manager__assignment-badge"
+                :class="`roster-manager__assignment-badge--${a.team}`"
+              >
+                <span class="roster-manager__assignment-dot" :class="`roster-manager__assignment-dot--${a.team}`" />
+                {{ ROLE_DISPLAY[a.roleId]?.abbr ?? a.roleId }}
+              </span>
               <v-btn
                 icon="fas fa-xmark"
                 variant="plain"
@@ -290,16 +361,9 @@ const foldersWithPlayers = computed(() =>
           <v-btn variant="outlined" @click="showAddFolder = false">Cancel</v-btn>
         </div>
       </template>
-      <v-btn
-        v-else
-        class="roster-manager__add-folder-btn"
-        variant="outlined"
-        block
-        prepend-icon="fas fa-folder-plus"
-        @click="openAddFolder"
-      >
-        Add folder
-      </v-btn>
+      <button v-else type="button" class="roster-manager__add-folder-link" @click="openAddFolder">
+        + Add folder
+      </button>
     </div>
 
     <ConfirmDialog
@@ -309,7 +373,8 @@ const foldersWithPlayers = computed(() =>
       @close="cancelRemoveFolder"
     >
       <p v-if="folderPendingDelete">
-        Delete <strong>{{ folderPendingDelete.name }}</strong>?
+        Delete <strong>{{ folderPendingDelete.name }}</strong
+        >?
         {{ folderPendingDelete.playerCount }}
         {{ folderPendingDelete.playerCount === 1 ? 'player' : 'players' }}
         will be moved to <strong>Players</strong>.
@@ -351,11 +416,9 @@ const foldersWithPlayers = computed(() =>
 .roster-manager__section-title {
   display: block;
   margin: 0;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.75);
 }
 
 .roster-manager__add-row {
@@ -392,7 +455,9 @@ const foldersWithPlayers = computed(() =>
   gap: 0.5rem;
   border: 2px dashed transparent;
   border-radius: 0.5rem;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 
   &--drag-over {
     border-color: rgba(var(--v-theme-primary), 0.5);
@@ -406,6 +471,21 @@ const foldersWithPlayers = computed(() =>
   justify-content: space-between;
   gap: 0.5rem;
   min-height: 2rem;
+  padding-left: 0.35rem;
+}
+
+.roster-manager__folder-select-all {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+
+  :deep(.v-checkbox) {
+    flex: none;
+  }
+
+  :deep(.v-selection-control) {
+    min-height: unset;
+  }
 }
 
 .roster-manager__folder-toggle {
@@ -428,30 +508,20 @@ const foldersWithPlayers = computed(() =>
 
 .roster-manager__chevron {
   flex-shrink: 0;
-  opacity: 0.55;
+  opacity: 0.35;
 }
 
 .roster-manager__folder-name {
   font-weight: 600;
   font-size: 0.9375rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(var(--v-theme-on-surface), 0.65);
+  color: rgba(var(--v-theme-on-surface), 0.75);
   transition: color 0.15s;
 }
 
-.roster-manager__folder-count {
-  flex-shrink: 0;
-  min-width: 1.375rem;
-  height: 1.375rem;
-  padding: 0 0.35rem;
-  border-radius: 999px;
-  background: rgba(var(--v-border-color), 0.12);
+.roster-manager__folder-inline-count {
   font-size: 0.8125rem;
-  font-weight: 600;
-  line-height: 1.375rem;
-  text-align: center;
-  color: rgba(var(--v-theme-on-surface), 0.55);
+  font-weight: 400;
+  color: rgba(var(--v-theme-on-surface), 0.4);
 }
 
 .roster-manager__empty {
@@ -476,19 +546,17 @@ const foldersWithPlayers = computed(() =>
   gap: 0.375rem;
   min-height: 2.375rem;
   padding: 0.2rem 0.5rem 0.2rem 0.35rem;
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 0.4375rem;
-  background: rgb(var(--v-theme-surface));
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: background 0.15s;
 
   &:hover {
-    border-color: rgba(var(--v-theme-on-surface), 0.22);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    background: rgba(var(--v-border-color), 0.08);
   }
 
   &--selected {
-    border-color: rgba(var(--v-theme-primary), 0.3);
     background: rgb(var(--v-theme-accent));
   }
 }
@@ -506,9 +574,41 @@ const foldersWithPlayers = computed(() =>
   line-height: 1.25;
 }
 
+.roster-manager__assignment-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  white-space: nowrap;
+}
+
+.roster-manager__assignment-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+
+  &--home {
+    background: rgb(var(--v-theme-home));
+  }
+
+  &--away {
+    background: rgb(var(--v-theme-away));
+  }
+}
+
 .roster-manager__remove-btn {
   flex-shrink: 0;
   opacity: 0.45;
+
+  :deep(.v-icon) {
+    font-size: 0.9rem !important;
+  }
 
   &:hover {
     opacity: 1;
@@ -530,10 +630,18 @@ const foldersWithPlayers = computed(() =>
   gap: 0.5rem;
 }
 
-.roster-manager__add-folder-btn {
-  height: 2.75rem !important;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  border-color: rgba(var(--v-theme-on-surface), var(--v-field-border-opacity, 0.38)) !important;
+.roster-manager__add-folder-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  cursor: pointer;
+  transition: color 0.15s;
+
+  &:hover {
+    color: rgba(var(--v-theme-on-surface), 0.75);
+  }
 }
 </style>

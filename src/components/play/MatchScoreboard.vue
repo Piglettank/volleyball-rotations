@@ -31,6 +31,8 @@ function isServing(team: TeamSide) {
   return s.value.servingTeam === team
 }
 
+const setsTooltip = ref<string | null>(null)
+
 const editingTeam = ref<TeamSide | null>(null)
 const draftName = ref('')
 const nameInputRef = ref<HTMLInputElement | null>(null)
@@ -182,8 +184,17 @@ function toggleSides() {
         {{ teamScore(leftTeam) }}
       </span>
       <div class="scoreboard__sets" aria-label="Sets won">
-        <span>{{ teamSetsWon(leftTeam) }}</span>
-        <span>{{ teamSetsWon(rightTeam) }}</span>
+        <span
+          class="scoreboard__sets-num"
+          @mouseenter="setsTooltip = `${teamName(leftTeam)} sets won`"
+          @mouseleave="setsTooltip = null"
+        >{{ teamSetsWon(leftTeam) }}</span>
+        <span
+          class="scoreboard__sets-num"
+          @mouseenter="setsTooltip = `${teamName(rightTeam)} sets won`"
+          @mouseleave="setsTooltip = null"
+        >{{ teamSetsWon(rightTeam) }}</span>
+        <div v-if="setsTooltip" class="scoreboard__sets-tooltip">{{ setsTooltip }}</div>
       </div>
       <span class="scoreboard__points-big" :aria-label="`${teamName(rightTeam)} score`">
         {{ teamScore(rightTeam) }}
@@ -280,8 +291,17 @@ function toggleSides() {
         {{ teamScore(leftTeam) }}
       </span>
       <div class="scoreboard__sets" aria-label="Sets won">
-        <span>{{ teamSetsWon(leftTeam) }}</span>
-        <span>{{ teamSetsWon(rightTeam) }}</span>
+        <span
+          class="scoreboard__sets-num"
+          @mouseenter="setsTooltip = `${teamName(leftTeam)} sets won`"
+          @mouseleave="setsTooltip = null"
+        >{{ teamSetsWon(leftTeam) }}</span>
+        <span
+          class="scoreboard__sets-num"
+          @mouseenter="setsTooltip = `${teamName(rightTeam)} sets won`"
+          @mouseleave="setsTooltip = null"
+        >{{ teamSetsWon(rightTeam) }}</span>
+        <div v-if="setsTooltip" class="scoreboard__sets-tooltip">{{ setsTooltip }}</div>
       </div>
       <span class="scoreboard__points-big" :aria-label="`${teamName(rightTeam)} score`">
         {{ teamScore(rightTeam) }}
@@ -350,6 +370,8 @@ function toggleSides() {
   &--left {
     grid-column: 1;
     grid-row: 1;
+    display: flex;
+    justify-content: flex-start;
   }
 
   &--right {
@@ -367,30 +389,30 @@ function toggleSides() {
   justify-self: center;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.25rem 0.5rem;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
   border: 1px solid rgba(var(--v-border-color), 0.4);
   border-radius: 999px;
   background: transparent;
-  color: rgba(var(--v-theme-on-surface), 0.55);
-  font-size: 0.625rem;
-  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 
   :deep(.v-icon) {
-    font-size: 0.625rem !important;
+    font-size: 0.75rem !important;
     opacity: 0.75;
   }
 
   &:hover {
     background: rgba(var(--v-border-color), 0.08);
     border-color: rgba(var(--v-theme-primary), 0.35);
-    color: rgba(var(--v-theme-on-surface), 0.85);
+    color: rgba(var(--v-theme-on-surface), 0.7);
   }
 }
 
@@ -503,7 +525,31 @@ function toggleSides() {
   text-align: center;
 }
 
+.scoreboard__sets-num {
+  cursor: default;
+}
+
+.scoreboard__sets-tooltip {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.375rem;
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: rgba(var(--v-theme-on-surface), 0.92);
+  pointer-events: none;
+  z-index: 10;
+}
+
 .scoreboard__sets {
+  position: relative;
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
@@ -650,7 +696,8 @@ function toggleSides() {
     height: 1.375rem;
   }
 
-  .scoreboard__serve-badge {
+  .scoreboard__serve-badge,
+  .scoreboard__switch-sides {
     font-size: 0.625rem;
     padding: 0.2rem 0.45rem;
     gap: 0.25rem;
@@ -658,11 +705,6 @@ function toggleSides() {
     :deep(.v-icon) {
       font-size: 0.625rem !important;
     }
-  }
-
-  .scoreboard__switch-sides {
-    font-size: 0.5625rem;
-    padding: 0.2rem 0.4rem;
   }
 }
 </style>

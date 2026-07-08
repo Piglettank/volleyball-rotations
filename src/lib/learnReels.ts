@@ -1,5 +1,23 @@
 import type { LearnCategory } from './learnMenu'
 
+export const learnReels: Record<LearnCategory, LearnReel[]> = {
+  serve: [{ id: 'serve-1', url: 'https://www.youtube.com/shorts/3rf0ZTwn7Hs' }],
+  receive: [
+    { id: 'receive-1', url: 'https://www.instagram.com/reel/DaU5UYTvVKJ/' },
+    { id: 'receive-2', url: 'https://www.youtube.com/shorts/pJxrP5KPWCQ' },
+  ],
+  set: [
+    { id: 'set-1', url: 'https://www.youtube.com/shorts/6v0BWJSRFMM' },
+    { id: 'set-2', url: 'https://www.youtube.com/shorts/k5o0yj5wJsA' },
+  ],
+  spike: [
+    { id: 'spike-3', url: 'https://www.youtube.com/shorts/F6xUwlqjdGM' },
+    { id: 'spike-4', url: 'https://www.tiktok.com/@_volleyvibes_/photo/7602771930235686166' },
+    { id: 'spike-5', url: 'https://www.tiktok.com/@volleybratans/video/7317101969728916768' },
+  ],
+  rotations: [],
+}
+
 export type ReelSource = 'instagram' | 'youtube' | 'tiktok'
 
 export interface LearnReel {
@@ -38,25 +56,4 @@ export function extractTikTokVideoId(url: string): string | null {
   // Matches both /video/ID and /photo/ID paths
   const m = url.match(/\/(?:video|photo)\/(\d+)/)
   return m?.[1] ?? null
-}
-
-export const learnReels: Record<LearnCategory, LearnReel[]> = {
-  serve: [
-    { id: 'serve-1', url: 'https://www.youtube.com/shorts/zCqJMsVWdBs' },
-    { id: 'serve-2', url: 'https://www.youtube.com/shorts/O5u_kCNM3tY' },
-  ],
-  spike: [
-    { id: 'spike-3', url: 'https://www.youtube.com/shorts/F6xUwlqjdGM' },
-    { id: 'spike-4', url: 'https://www.tiktok.com/@_volleyvibes_/photo/7602771930235686166' },
-    { id: 'spike-5', url: 'https://www.tiktok.com/@volleybratans/video/7317101969728916768' },
-  ],
-  set: [
-    { id: 'set-1', url: 'https://www.youtube.com/shorts/6v0BWJSRFMM' },
-    { id: 'set-2', url: 'https://www.youtube.com/shorts/k5o0yj5wJsA' },
-  ],
-  receive: [
-    { id: 'receive-1', url: 'https://www.instagram.com/reel/DaU5UYTvVKJ/' },
-    { id: 'receive-2', url: 'https://www.youtube.com/shorts/pJxrP5KPWCQ' },
-  ],
-  rotations: [],
 }

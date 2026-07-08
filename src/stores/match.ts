@@ -178,6 +178,8 @@ export const useMatchStore = defineStore('match', () => {
     s.homeScore = 0
     s.awayScore = 0
     s.currentSet += 1
+    s.homeRotation = DEFAULT_ROTATION
+    s.awayRotation = DEFAULT_ROTATION
     s.sidesSwapped = !s.sidesSwapped
     s.servingTeam = opponentTeam(s.servingTeam)
 
@@ -214,6 +216,19 @@ export const useMatchStore = defineStore('match', () => {
 
   function assignPlayer(team: TeamSide, roleId: string, profilePlayerId: string | null) {
     if (!matchState.value) return
+    // Clear any existing slot this player occupies across both teams
+    if (profilePlayerId) {
+      for (const rid of Object.keys(matchState.value.homeAssignments)) {
+        if (matchState.value.homeAssignments[rid] === profilePlayerId) {
+          matchState.value.homeAssignments[rid] = null
+        }
+      }
+      for (const rid of Object.keys(matchState.value.awayAssignments)) {
+        if (matchState.value.awayAssignments[rid] === profilePlayerId) {
+          matchState.value.awayAssignments[rid] = null
+        }
+      }
+    }
     if (team === 'home') {
       matchState.value.homeAssignments[roleId] = profilePlayerId
     } else {

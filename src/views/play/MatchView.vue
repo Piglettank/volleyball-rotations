@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import MatchScoreboard from '@/components/play/MatchScoreboard.vue'
 import MatchCourt from '@/components/play/MatchCourt.vue'
 import PlayerAssignPopover from '@/components/play/PlayerAssignPopover.vue'
 import RosterDrawer from '@/components/play/RosterDrawer.vue'
 import ConfirmDialog from '@/components/play/ConfirmDialog.vue'
-import { COURT_COLORS, APP_THEME_COLORS } from '@/components/court/courtGeometry'
+import { COURT_COLORS } from '@/components/court/courtGeometry'
+import { APP_THEME_COLORS } from '@/styles/theme'
 import { useMatchStore } from '@/stores/match'
 import { isSetEndEligible, leadingTeam, teamOnLeft, teamOnRight } from '@/models/match'
 import type { TeamSide } from '@/models/match'
 
 const router = useRouter()
+const route = useRoute()
 const matchStore = useMatchStore()
 
 const s = computed(() => matchStore.state!)
@@ -33,7 +35,14 @@ type PopoverState = {
 }
 
 const popover = ref<PopoverState | null>(null)
-const showRosterDrawer = ref(false)
+
+const showRosterDrawer = computed({
+  get: () => route.name === 'play-players',
+  set: (val: boolean) => {
+    if (val) router.push({ name: 'play-players' })
+    else router.back()
+  },
+})
 
 function onPlayerClick(payload: {
   team: TeamSide
@@ -59,7 +68,25 @@ function closePopover() {
   popover.value = null
 }
 
+// ── End match confirmation ───────────────────────────────────────────────────
+
+const showEndMatchDialog = ref(false)
+
+/** True only for the very first planning phase — set 1, score 0-0. */
+const isFirstPlanningPhase = computed(
+  () => isPlanning.value && s.value.homeSetsWon === 0 && s.value.awaySetsWon === 0,
+)
+
 function endMatch() {
+  if (!isFirstPlanningPhase.value) {
+    showEndMatchDialog.value = true
+  } else {
+    confirmEndMatch()
+  }
+}
+
+function confirmEndMatch() {
+  showEndMatchDialog.value = false
   matchStore.endMatch()
   router.push({ name: 'home' })
 }
@@ -259,6 +286,28 @@ function acceptAutoEnd() {
       </template>
     </ConfirmDialog>
 
+    <!-- End match confirmation -->
+    <ConfirmDialog v-model="showEndMatchDialog" title="End match?" icon="fas fa-door-open">
+      <p>The match is ongoing. Are you sure you want to end it?</p>
+
+      <template #actions>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--ghost"
+          @click="showEndMatchDialog = false"
+        >
+          Keep playing
+        </button>
+        <button
+          type="button"
+          class="confirm-dialog__btn confirm-dialog__btn--end"
+          @click="confirmEndMatch"
+        >
+          End match
+        </button>
+      </template>
+    </ConfirmDialog>
+
     <!-- Player assign popover (teleported to body to avoid clip) -->
     <Teleport to="body">
       <PlayerAssignPopover
@@ -269,6 +318,7 @@ function acceptAutoEnd() {
         :anchor-x="popover.x"
         :anchor-y="popover.y"
         @close="closePopover"
+        @open-players="closePopover(); showRosterDrawer = true"
       />
     </Teleport>
 
@@ -387,13 +437,13 @@ function acceptAutoEnd() {
 }
 
 .match-point-btn--home {
-  background: rgb(var(--v-theme-primary));
-  color: rgb(var(--v-theme-on-primary));
+  background: rgb(var(--v-theme-home));
+  color: rgb(var(--v-theme-on-home));
 }
 
 .match-point-btn--away {
-  background: rgb(var(--v-theme-error));
-  color: rgb(var(--v-theme-on-error));
+  background: rgb(var(--v-theme-away));
+  color: rgb(var(--v-theme-on-away));
 }
 
 .match-undo-btn {
