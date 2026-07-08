@@ -196,7 +196,7 @@ onUnmounted(() => {
 
   &--ghost {
     background: transparent;
-    border-color: rgba(var(--v-border-color), 0.45);
+    border-color: rgba(var(--v-theme-on-surface), 0.38);
     color: rgba(var(--v-theme-on-surface), 0.72);
 
     &:hover {

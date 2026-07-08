@@ -391,7 +391,7 @@ function toggleSides() {
   align-items: center;
   gap: 0.35rem;
   padding: 0.25rem 0.6rem;
-  border: 1px solid rgba(var(--v-border-color), 0.4);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.38);
   border-radius: 999px;
   background: transparent;
   color: rgba(var(--v-theme-on-surface), 0.45);
@@ -586,7 +586,7 @@ function toggleSides() {
   width: 1.625rem;
   height: 1.625rem;
   padding: 0;
-  border: 1px solid rgba(var(--v-border-color), 0.4);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.38);
   border-radius: 0.375rem;
   background: rgba(var(--v-border-color), 0.06);
   color: rgba(var(--v-theme-on-surface), 0.65);
@@ -631,7 +631,7 @@ function toggleSides() {
 
   &--pickable {
     background: transparent;
-    border-color: rgba(var(--v-border-color), 0.35);
+    border-color: rgba(var(--v-theme-on-surface), 0.38);
     color: rgba(var(--v-theme-on-surface), 0.45);
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;

@@ -349,7 +349,7 @@ $desktop-breakpoint: 801px;
 @media (min-width: $desktop-breakpoint) {
   .controls-panel {
     order: -1;
-    width: min(26rem, 42vw);
+    width: min(34rem, 42vw);
     flex-shrink: 0;
     justify-content: center;
     padding: 1.25rem;
