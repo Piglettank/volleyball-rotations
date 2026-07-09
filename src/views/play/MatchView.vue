@@ -68,6 +68,11 @@ function closePopover() {
   popover.value = null
 }
 
+function openPlayersFromPopover() {
+  closePopover()
+  showRosterDrawer.value = true
+}
+
 // ── End match confirmation ───────────────────────────────────────────────────
 
 const showEndMatchDialog = ref(false)
@@ -318,7 +323,7 @@ function acceptAutoEnd() {
         :anchor-x="popover.x"
         :anchor-y="popover.y"
         @close="closePopover"
-        @open-players="closePopover(); showRosterDrawer = true"
+        @open-players="openPlayersFromPopover"
       />
     </Teleport>
 
@@ -448,14 +453,16 @@ function acceptAutoEnd() {
 
 .match-undo-btn {
   flex-shrink: 0;
-  align-self: stretch;
-  aspect-ratio: 1;
+  align-self: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  min-width: 3.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.15rem;
-  padding: 0.5rem;
+  padding: 0.45rem;
   border: 1px solid rgba(var(--v-theme-on-surface), 0.38);
   border-radius: 0.625rem;
   background: transparent;
@@ -593,8 +600,11 @@ function acceptAutoEnd() {
   }
 
   .match-undo-btn {
+    width: 3.25rem;
+    height: 3.25rem;
+    min-width: 3.25rem;
     border-radius: 0.5rem;
-    padding: 0.4rem;
+    padding: 0.35rem;
   }
 
   .match-footer {
