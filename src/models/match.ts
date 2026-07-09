@@ -40,6 +40,9 @@ export type RotationNumber = 1 | 2 | 3 | 4 | 5 | 6
 
 export const DEFAULT_ROTATION = 2 as RotationNumber
 
+/** Court rotation order after a side-out (matches learn formation stepping). */
+export const ROTATION_SEQUENCE: readonly RotationNumber[] = [1, 6, 5, 4, 3, 2]
+
 export function rotationLabel(rotation: RotationNumber): string {
   return `P${rotation}`
 }
@@ -95,11 +98,13 @@ export function isSetEndEligible(homeScore: number, awayScore: number): boolean 
 }
 
 export function nextRotation(current: RotationNumber): RotationNumber {
-  return ((current % 6) + 1) as RotationNumber
+  const index = ROTATION_SEQUENCE.indexOf(current)
+  return ROTATION_SEQUENCE[(index + 1) % ROTATION_SEQUENCE.length]!
 }
 
 export function prevRotation(current: RotationNumber): RotationNumber {
-  return (((current - 2 + 6) % 6) + 1) as RotationNumber
+  const index = ROTATION_SEQUENCE.indexOf(current)
+  return ROTATION_SEQUENCE[(index - 1 + ROTATION_SEQUENCE.length) % ROTATION_SEQUENCE.length]!
 }
 
 export function stepRotationNumber(current: RotationNumber, delta: 1 | -1): RotationNumber {
