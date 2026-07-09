@@ -1,17 +1,26 @@
 import type { LearnCategory } from './learnMenu'
 
 export const learnReels: Record<LearnCategory, LearnReel[]> = {
-  serve: [{ id: 'serve-1', url: 'https://www.youtube.com/shorts/3rf0ZTwn7Hs' }],
+  serve: [
+    { id: 'float-1', url: 'https://www.youtube.com/shorts/3rf0ZTwn7Hs' },
+    { id: 'float-2', url: 'https://youtube.com/shorts/6MhG-1f2ymU' },
+  ],
   receive: [
-    { id: 'receive-1', url: 'https://www.instagram.com/reel/DaU5UYTvVKJ/' },
-    { id: 'receive-2', url: 'https://www.youtube.com/shorts/pJxrP5KPWCQ' },
+    // meme
+    // { id: 'receive-1', url: 'https://www.instagram.com/reel/DaU5UYTvVKJ/' },
+    { id: 'receive-2', url: 'https://youtube.com/shorts/vEEIQmABGys?si=4jCr8d89cPilm3Bc' },
+    { id: 'receive-3-tips', url: 'https://youtube.com/shorts/x3UtIOTmNdc' },
   ],
   set: [
-    { id: 'set-1', url: 'https://www.youtube.com/shorts/6v0BWJSRFMM' },
+    { id: 'set-1', url: 'https://youtube.com/shorts/xNHfA2WbwvI?si=kjxXJvPKX8Hb3V3V' },
     { id: 'set-2', url: 'https://www.youtube.com/shorts/k5o0yj5wJsA' },
   ],
   spike: [
-    { id: 'spike-3', url: 'https://www.youtube.com/shorts/F6xUwlqjdGM' },
+    { id: 'spike-1', url: 'https://www.youtube.com/shorts/yQzvbK93y58' },
+    { id: '3-step-kids', url: 'https://www.youtube.com/shorts/Gdz_p2rUOvk' },
+    { id: '3-step-side', url: 'https://youtube.com/shorts/Uw1XX3nfYNA?si=M0imxC9utWoJBVKs' },
+    { id: '4-step', url: 'https://www.youtube.com/shorts/MjvH5Bf-Ep8' },
+    { id: 'more-in-depth', url: 'https://youtube.com/shorts/HO4niF4eHwE?si=2xZVDaE_8qXuyt95' },
     { id: 'spike-4', url: 'https://www.tiktok.com/@_volleyvibes_/photo/7602771930235686166' },
     { id: 'spike-5', url: 'https://www.tiktok.com/@volleybratans/video/7317101969728916768' },
   ],

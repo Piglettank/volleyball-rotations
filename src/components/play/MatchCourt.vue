@@ -174,8 +174,10 @@ function onCourtPointerMove(e: PointerEvent) {
         const inv = ctm.inverse()
         const p0 = el.createSVGPoint()
         const p1 = el.createSVGPoint()
-        p0.x = 0; p0.y = 0
-        p1.x = dx; p1.y = dy
+        p0.x = 0
+        p0.y = 0
+        p1.x = dx
+        p1.y = dy
         const s0 = p0.matrixTransform(inv)
         const s1 = p1.matrixTransform(inv)
         viewState.value = clampViewState({
@@ -194,7 +196,9 @@ function onCourtPointerUp(e: PointerEvent) {
   activePointers.delete(e.pointerId)
   // Delay reset until after click handlers have had a chance to check dragMoved
   if (activePointers.size === 0) {
-    setTimeout(() => { dragMoved = false }, 0)
+    setTimeout(() => {
+      dragMoved = false
+    }, 0)
   }
 }
 
@@ -204,7 +208,7 @@ const isSmallScreen = ref(
   typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches,
 )
 
-const markerScale = computed(() => (isSmallScreen.value ? 1.5 : 1))
+const markerScale = computed(() => (isSmallScreen.value ? 1.9 : 1))
 const markerRadius = computed(() => PLAY_MARKER_RADIUS * markerScale.value)
 const markerFont = computed(() => PLAY_MARKER_FONT * markerScale.value)
 const ballRadius = computed(() => PLAY_BALL_RADIUS * markerScale.value)
@@ -405,7 +409,9 @@ onMounted(() => {
 
   // Small-screen listener
   const mq = window.matchMedia('(max-width: 640px)')
-  const mqHandler = (e: MediaQueryListEvent) => { isSmallScreen.value = e.matches }
+  const mqHandler = (e: MediaQueryListEvent) => {
+    isSmallScreen.value = e.matches
+  }
   mq.addEventListener('change', mqHandler)
 
   // Non-passive wheel listener so we can call preventDefault()

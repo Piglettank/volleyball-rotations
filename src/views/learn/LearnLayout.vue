@@ -78,12 +78,11 @@ function closeReels() {
           <v-btn
             class="learn__close-btn"
             variant="text"
-            density="comfortable"
             icon
             aria-label="Close"
             @click="closeReels"
           >
-            <v-icon icon="fas fa-xmark" />
+            <v-icon icon="fas fa-xmark" size="large" />
           </v-btn>
 
           <RouterView />
@@ -246,9 +245,14 @@ $mobile-breakpoint: 640px;
   top: max(0.75rem, env(safe-area-inset-top));
   right: max(0.75rem, env(safe-area-inset-right));
   z-index: 10;
-  background: rgba(var(--v-theme-surface), 0.85) !important;
-  backdrop-filter: blur(4px);
+  width: 3.25rem !important;
+  height: 3.25rem !important;
+  background: rgba(0, 0, 0, 0.55) !important;
   border-radius: 50% !important;
+
+  :deep(.v-icon) {
+    color: #fff !important;
+  }
 }
 
 // Show on desktop when a reel is active

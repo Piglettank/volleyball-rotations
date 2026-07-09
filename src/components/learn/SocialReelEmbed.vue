@@ -29,7 +29,7 @@ const instagramEmbedSrc = computed(() => {
   if (source.value !== 'instagram') return null
   if (!props.active) return ''
   const shortcode = extractInstagramShortcode(props.url)
-  return shortcode ? `https://www.instagram.com/reel/${shortcode}/embed/` : null
+  return shortcode ? `https://www.instagram.com/reel/${shortcode}/embed/?hidecaption=1` : null
 })
 
 const tiktokVideoId = computed(() => {
@@ -64,13 +64,20 @@ watch(source, (s) => {
         class="reel-embed__youtube"
         :src="youtubeEmbedSrc"
         frameborder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allow="
+          accelerometer;
+          autoplay;
+          clipboard-write;
+          encrypted-media;
+          gyroscope;
+          picture-in-picture;
+        "
         allowfullscreen
         title="YouTube Shorts"
       />
     </template>
 
-    <!-- Instagram Reel — clipping wrapper hides the bottom action bar -->
+    <!-- Instagram Reel — clip wrapper crops header + engagement chrome -->
     <template v-else-if="source === 'instagram' && instagramEmbedSrc !== null">
       <div class="reel-embed__instagram-clip">
         <iframe
@@ -79,6 +86,7 @@ watch(source, (s) => {
           frameborder="0"
           scrolling="no"
           allowtransparency
+          allow="autoplay; encrypted-media; picture-in-picture"
           allowfullscreen
           title="Instagram Reel"
         />
@@ -121,19 +129,22 @@ watch(source, (s) => {
 }
 
 .reel-embed__instagram-clip {
-  // The Instagram embed iframe has a ~56px action bar at the bottom.
-  // We clip it by constraining the container and making the iframe overflow.
+  // Viewport is video-only (9:16). Instagram chrome is cropped via iframe offset.
   width: min(360px, 90vw);
-  height: min(640px, calc(90vw * 16 / 9));
+  aspect-ratio: 9 / 16;
   overflow: hidden;
   border-radius: 0.75rem;
   position: relative;
+  background: #000;
 }
 
 .reel-embed__instagram {
-  width: 100%;
-  // Extra height pushes the bottom comment/action bar outside the clipped container
-  height: calc(100% + 160px);
+  position: absolute;
+  // Profile header ~8.5%, engagement footer ~27% of the video viewport height.
+  top: -9%;
+  left: -22%;
+  width: 145%;
+  height: 160%;
   border: none;
   display: block;
 }

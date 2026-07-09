@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { learnReels } from '@/lib/learnReels'
 import type { LearnCategory } from '@/lib/learnMenu'
 import SocialReelEmbed from './SocialReelEmbed.vue'
@@ -12,13 +12,22 @@ const reels = computed(() => learnReels[props.category] ?? [])
 const currentIndex = ref(0)
 
 // Reset to first reel when category changes
-watch(() => props.category, () => { currentIndex.value = 0 })
+watch(() => props.category, () => {
+  currentIndex.value = 0
+  nextTick(() => feedRef.value?.scrollTo({ top: 0 }))
+})
+
+const feedRef = ref<HTMLElement | null>(null)
+
+function scrollToIndex(index: number) {
+  slideRefs.value[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 function prev() {
-  if (currentIndex.value > 0) currentIndex.value--
+  if (currentIndex.value > 0) scrollToIndex(currentIndex.value - 1)
 }
 function next() {
-  if (currentIndex.value < reels.value.length - 1) currentIndex.value++
+  if (currentIndex.value < reels.value.length - 1) scrollToIndex(currentIndex.value + 1)
 }
 
 // ── Mobile: IntersectionObserver tracks which slide has scrolled into view ──
@@ -39,7 +48,7 @@ function setupObservers() {
       if (!el) return
       const o = new IntersectionObserver(
         ([entry]) => {
-          if (entry.isIntersecting) currentIndex.value = index
+          if (entry?.isIntersecting) currentIndex.value = index
         },
         { threshold: 0.6 },
       )
@@ -49,28 +58,15 @@ function setupObservers() {
   })
 }
 
-watch(reels, setupObservers, { immediate: true })
+watch(reels, () => {
+  slideRefs.value = []
+  setupObservers()
+  nextTick(() => feedRef.value?.scrollTo({ top: 0 }))
+}, { immediate: true })
 
-// ── Desktop: wheel to navigate ───────────────────────────────────────────────
-const desktopRef = ref<HTMLElement | null>(null)
-let wheelCooldown = false
-
-function onWheel(e: WheelEvent) {
-  e.preventDefault()
-  if (wheelCooldown) return
-  if (e.deltaY > 0) next()
-  else if (e.deltaY < 0) prev()
-  // Brief cooldown so one trackpad swipe doesn't skip multiple reels
-  wheelCooldown = true
-  setTimeout(() => { wheelCooldown = false }, 600)
-}
-
-onMounted(() => {
-  // passive: false required so we can call preventDefault and block page scroll
-  desktopRef.value?.addEventListener('wheel', onWheel, { passive: false })
-})
 onBeforeUnmount(() => {
-  desktopRef.value?.removeEventListener('wheel', onWheel)
+  observers.forEach((o) => o.disconnect())
+  observers = []
 })
 </script>
 
@@ -82,60 +78,58 @@ onBeforeUnmount(() => {
     </div>
 
     <template v-else>
-      <!-- ── Desktop: single slide + up/down buttons ── -->
-      <div ref="desktopRef" class="reels-panel__desktop">
-        <v-btn
-          class="reels-panel__nav-btn reels-panel__nav-btn--up"
-          variant="text"
-          icon
-          :disabled="currentIndex === 0"
-          aria-label="Previous reel"
-          @click="prev"
-        >
-          <v-icon icon="fas fa-chevron-up" />
-        </v-btn>
-
-        <div class="reels-panel__desktop-slide">
-          <SocialReelEmbed
-            :url="reels[currentIndex].url"
-            :active="true"
-          />
+      <div class="reels-panel__shell">
+        <!-- Scroll-snap feed (mobile + desktop) -->
+        <div ref="feedRef" class="reels-panel__feed">
+          <div
+            v-for="(reel, index) in reels"
+            :key="reel.id"
+            :ref="(el) => registerSlide(el as HTMLElement | null, index)"
+            class="reels-panel__slide"
+          >
+            <SocialReelEmbed
+              :url="reel.url"
+              :active="index === currentIndex"
+            />
+          </div>
         </div>
 
-        <v-btn
-          class="reels-panel__nav-btn reels-panel__nav-btn--down"
-          variant="text"
-          icon
-          :disabled="currentIndex === reels.length - 1"
-          aria-label="Next reel"
-          @click="next"
-        >
-          <v-icon icon="fas fa-chevron-down" />
-        </v-btn>
+        <!-- Desktop: arrow helpers overlaid on the feed -->
+        <div class="reels-panel__desktop-chrome">
+          <div class="reels-panel__nav-group">
+            <v-btn
+              class="reels-panel__nav-btn"
+              variant="text"
+              icon
+              size="large"
+              :disabled="currentIndex === 0"
+              aria-label="Previous reel"
+              @click="prev"
+            >
+              <v-icon icon="fas fa-chevron-up" />
+            </v-btn>
 
-        <!-- Dot indicators -->
-        <div class="reels-panel__dots">
-          <span
-            v-for="(_, i) in reels"
-            :key="i"
-            class="reels-panel__dot"
-            :class="{ 'reels-panel__dot--active': i === currentIndex }"
-          />
-        </div>
-      </div>
+            <v-btn
+              class="reels-panel__nav-btn"
+              variant="text"
+              icon
+              size="large"
+              :disabled="currentIndex === reels.length - 1"
+              aria-label="Next reel"
+              @click="next"
+            >
+              <v-icon icon="fas fa-chevron-down" />
+            </v-btn>
+          </div>
 
-      <!-- ── Mobile: scroll-snap feed ── -->
-      <div class="reels-panel__mobile-feed">
-        <div
-          v-for="(reel, index) in reels"
-          :key="reel.id"
-          :ref="(el) => registerSlide(el as HTMLElement | null, index)"
-          class="reels-panel__slide"
-        >
-          <SocialReelEmbed
-            :url="reel.url"
-            :active="index === currentIndex"
-          />
+          <div class="reels-panel__dots">
+            <span
+              v-for="(_, i) in reels"
+              :key="i"
+              class="reels-panel__dot"
+              :class="{ 'reels-panel__dot--active': i === currentIndex }"
+            />
+          </div>
         </div>
       </div>
     </template>
@@ -165,18 +159,29 @@ $desktop-breakpoint: 801px;
   color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
 }
 
-// ── Desktop layout ───────────────────────────────────────────────────────────
-.reels-panel__desktop {
-  display: none;
+// ── Scroll-snap feed ─────────────────────────────────────────────────────────
+.reels-panel__shell {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
-.reels-panel__mobile-feed {
+.reels-panel__feed {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   scroll-snap-type: y mandatory;
   overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .reels-panel__slide {
@@ -185,6 +190,7 @@ $desktop-breakpoint: 801px;
   height: 100%;
   min-height: 100%;
   scroll-snap-align: start;
+  scroll-snap-stop: always;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -192,49 +198,65 @@ $desktop-breakpoint: 801px;
   box-sizing: border-box;
 }
 
+.reels-panel__desktop-chrome {
+  display: none;
+}
+
 @media (min-width: $desktop-breakpoint) {
-  .reels-panel__desktop {
+  .reels-panel__desktop-chrome {
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .reels-panel__nav-group {
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    flex: 1;
-    position: relative;
-    gap: 0.5rem;
-  }
+    justify-content: space-between;
+    padding: 0.75rem 0 2.75rem;
+    pointer-events: none;
 
-  .reels-panel__mobile-feed {
-    display: none;
-  }
-
-  .reels-panel__desktop-slide {
-    flex: 1;
-    min-height: 0;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .reels-panel__nav-btn {
+      pointer-events: auto;
+    }
   }
 
   .reels-panel__nav-btn {
     flex-shrink: 0;
-    opacity: 0.7;
-    transition: opacity 0.15s;
+    width: 3rem !important;
+    height: 3rem !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    border-radius: 50% !important;
+    opacity: 1;
+    transition: opacity 0.15s, background 0.15s;
+
+    :deep(.v-icon) {
+      color: #fff !important;
+    }
 
     &:not(:disabled):hover {
-      opacity: 1;
+      background: rgba(0, 0, 0, 0.7) !important;
     }
 
     &:disabled {
-      opacity: 0.2;
+      opacity: 0.35;
     }
   }
 
   .reels-panel__dots {
+    position: absolute;
+    bottom: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     flex-direction: row;
     gap: 0.4rem;
-    padding-bottom: 0.25rem;
+    pointer-events: auto;
   }
 
   .reels-panel__dot {
