@@ -159,8 +159,8 @@ function worldToCameraSpace(
 ): { x: number; y: number; z: number } {
   const cosY = Math.cos(-camera.yaw)
   const sinY = Math.sin(-camera.yaw)
-  let x1 = x * cosY - z * sinY
-  let z1 = x * sinY + z * cosY
+  const x1 = x * cosY - z * sinY
+  const z1 = x * sinY + z * cosY
 
   const cosP = Math.cos(-camera.pitch)
   const sinP = Math.sin(-camera.pitch)

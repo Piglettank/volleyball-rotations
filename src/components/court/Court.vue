@@ -27,9 +27,7 @@ const controlsPanelVisible = defineModel<boolean>('controlsPanelVisible', { defa
 
 const viewModeToggleLabel = computed(() => (viewMode.value === '3d' ? '2D' : '3D'))
 
-const viewModeToggleIcon = computed(() =>
-  viewMode.value === '3d' ? 'fas fa-map' : 'fas fa-cube',
-)
+const viewModeToggleIcon = computed(() => (viewMode.value === '3d' ? 'fas fa-map' : 'fas fa-cube'))
 
 function toggleViewMode() {
   viewMode.value = viewMode.value === '3d' ? '2d' : '3d'
@@ -128,7 +126,11 @@ onUnmounted(() => {
 
 <template>
   <div ref="containerRef" class="court-fit" :class="{ 'court-fit--3d': viewMode === '3d' }">
-    <div class="court-wrapper" :class="{ 'court-wrapper--3d': viewMode === '3d' }" :style="wrapperStyle">
+    <div
+      class="court-wrapper"
+      :class="{ 'court-wrapper--3d': viewMode === '3d' }"
+      :style="wrapperStyle"
+    >
       <CourtCanvas
         ref="courtCanvasRef"
         :players="props.players"
@@ -252,7 +254,7 @@ onUnmounted(() => {
   pointer-events: auto;
   height: auto;
   min-width: 2.75rem;
-  padding: 0.35rem 0.5rem;
+  padding: 0.35rem 0.4rem;
   border-radius: 0.5rem;
   border: 2px solid transparent !important;
   background-color: rgba(255, 255, 255, 0.9) !important;
@@ -281,7 +283,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
   line-height: 1;
 }
 

@@ -8,7 +8,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('@/views/HomeView.vue'),
-      meta: { title: 'Bolleyvoll' },
+      meta: { title: 'Volley Rotations' },
       beforeEnter: (to) => {
         if (to.query.rotation || to.query.p) {
           return { path: '/learn/rotations', query: to.query }
@@ -18,36 +18,35 @@ const router = createRouter({
     {
       path: '/learn',
       component: () => import('@/views/learn/LearnLayout.vue'),
-      meta: { title: 'Learn — Bolleyvoll' },
+      meta: { title: 'Learn — Volley Rotations' },
       children: [
-        { path: '' }, // no default selection — hero shown instead
         {
           path: 'serve',
           name: 'learn-serve',
           component: () => import('@/views/learn/LearnReelsView.vue'),
           props: { category: 'serve' },
-          meta: { title: 'Serve — Bolleyvoll' },
+          meta: { title: 'Serve — Volley Rotations' },
         },
         {
           path: 'spike',
           name: 'learn-spike',
           component: () => import('@/views/learn/LearnReelsView.vue'),
           props: { category: 'spike' },
-          meta: { title: 'Spike — Bolleyvoll' },
+          meta: { title: 'Spike — Volley Rotations' },
         },
         {
           path: 'set',
           name: 'learn-set',
           component: () => import('@/views/learn/LearnReelsView.vue'),
           props: { category: 'set' },
-          meta: { title: 'Set — Bolleyvoll' },
+          meta: { title: 'Set — Volley Rotations' },
         },
         {
           path: 'receive',
           name: 'learn-receive',
           component: () => import('@/views/learn/LearnReelsView.vue'),
           props: { category: 'receive' },
-          meta: { title: 'Receive — Bolleyvoll' },
+          meta: { title: 'Receive — Volley Rotations' },
         },
       ],
     },
@@ -55,13 +54,13 @@ const router = createRouter({
       path: '/learn/rotations',
       name: 'learn-rotations',
       component: () => import('@/views/learn/RotationsView.vue'),
-      meta: { title: 'Rotations — Bolleyvoll' },
+      meta: { title: 'Rotations — Volley Rotations' },
     },
     {
       path: '/play',
       name: 'play',
       component: () => import('@/views/play/MatchView.vue'),
-      meta: { title: 'Match — Bolleyvoll' },
+      meta: { title: 'Match — Volley Rotations' },
       beforeEnter: () => {
         const matchStore = useMatchStore()
         if (!matchStore.isActive) {

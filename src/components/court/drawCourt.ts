@@ -125,7 +125,6 @@ function drawNet3d(
   viewport?: ProjectViewport,
   canvas?: ProjectionCanvas,
 ) {
-  const mode = '3d' as const
   const pad = COURT.extraSpaceM / 2
   const netZ = pad + COURT.lengthM / 2
   const netTop = COURT.netHeightM

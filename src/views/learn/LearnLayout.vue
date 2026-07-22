@@ -3,9 +3,11 @@ import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import LearnMenuButton from '@/components/learn/LearnMenuButton.vue'
 import { learnMenuItems } from '@/lib/learnMenu'
+import { getHeroUrl } from '@/lib/heroes'
 
 const router = useRouter()
 const route = useRoute()
+const heroUrl = getHeroUrl()
 
 // On mobile, we show fullscreen reels when a skill category is active.
 // Rotations navigates away entirely, so only reel routes trigger fullscreen.
@@ -64,7 +66,7 @@ function closeReels() {
         <div class="learn__hero" :class="{ 'learn__hero--blurred': isReelActive }">
           <img
             class="learn__hero-image"
-            src="/home-hero.jpg"
+            :src="heroUrl"
             alt=""
             width="1600"
             height="1067"

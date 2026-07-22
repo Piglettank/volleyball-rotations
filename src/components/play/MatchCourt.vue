@@ -308,7 +308,8 @@ function toCourtMarker(player: AnimPlayer): CourtMarker {
 }
 
 const homeMarkers = computed(() => {
-  animFrame.value
+  // Read to register as a dependency — recomputes every animation tick.
+  const _animFrame = animFrame.value
   return playerAnimator
     .getDisplayPlayers(animPlayers.value)
     .map((player) => toCourtMarker(player as AnimPlayer))
@@ -316,7 +317,8 @@ const homeMarkers = computed(() => {
 })
 
 const awayMarkers = computed(() => {
-  animFrame.value
+  // Read to register as a dependency — recomputes every animation tick.
+  const _animFrame = animFrame.value
   return playerAnimator
     .getDisplayPlayers(animPlayers.value)
     .map((player) => toCourtMarker(player as AnimPlayer))

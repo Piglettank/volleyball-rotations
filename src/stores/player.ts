@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 
 import type { PlayerModel, RosterPlayer } from '@/models/player'
 import type {
-  FormationGroup,
   FormationLibrary,
   FormationVariant,
   PlayerCoordinates,

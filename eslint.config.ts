@@ -20,6 +20,18 @@ export default defineConfigWithVueTs(
   ...pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
 
+  {
+    rules: {
+      // "Court" is a deliberate, domain-specific single-word component name.
+      'vue/multi-word-component-names': ['error', { ignores: ['Court'] }],
+      // Leading underscore(s) mark an intentionally unused parameter/variable.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
+
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   skipFormatting,

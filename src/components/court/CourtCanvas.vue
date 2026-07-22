@@ -331,7 +331,8 @@ const hoveredPlayer = computed(() => {
 })
 
 const tooltipStyle = computed(() => {
-  tooltipFrame.value
+  // Read to register as a dependency — recomputes every redraw while a player is hovered.
+  const _tooltipFrame = tooltipFrame.value
   const player = hoveredPlayer.value
   if (!player) return undefined
 

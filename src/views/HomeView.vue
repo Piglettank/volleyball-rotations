@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { getHeroUrl } from '@/lib/heroes'
 
 const router = useRouter()
+const heroUrl = getHeroUrl()
 
 function goToPlay() {
   router.push({ name: 'play' })
 }
 
 function goToLearn() {
-  router.push({ path: '/learn' })
+  // Learn hub (serve/spike/set/receive) is hidden for now — go straight to rotations.
+  router.push({ name: 'learn-rotations' })
 }
 </script>
 
@@ -18,7 +21,7 @@ function goToLearn() {
       <aside class="home__sidebar">
         <header class="home__header">
           <img class="home__icon" src="/favicon.ico" alt="" width="52" height="52" />
-          <h1 class="home__title">Bolleyvoll</h1>
+          <h1 class="home__title">Volley Rotations</h1>
         </header>
 
         <nav class="home__menu" aria-label="Main menu">
@@ -47,7 +50,7 @@ function goToLearn() {
       <div class="home__hero" aria-hidden="true">
         <img
           class="home__hero-image"
-          src="/home-hero.jpg"
+          :src="heroUrl"
           alt=""
           width="1600"
           height="1067"
@@ -206,6 +209,15 @@ $mobile-breakpoint: 640px;
 }
 
 @media (max-width: $mobile-breakpoint) {
+  .home__icon {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .home__title {
+    font-size: 2.5rem;
+  }
+
   .home {
     display: flex;
     flex-direction: column;
@@ -215,16 +227,28 @@ $mobile-breakpoint: 640px;
     height: 100%;
   }
 
-  .home__sidebar {
+  // Hero fills all space above the bottom menu box
+  .home__hero {
+    order: 1;
     flex: 1;
+    min-height: 0;
+  }
+
+  // Bottom menu box — hugs its content, even padding on all sides
+  .home__sidebar {
+    order: 2;
+    flex: 0 0 auto;
     width: 100%;
     border-right: none;
     border-bottom: none;
+    border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
     justify-content: center;
-  }
-
-  .home__hero {
-    display: none;
+    position: relative;
+    z-index: 1;
+    border-radius: 1.25rem 1.25rem 0 0;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
   }
 }
 </style>

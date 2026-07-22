@@ -25,6 +25,18 @@ const statusMessage = computed(() => importStatus.value || shareLoadError.value)
 
 <template>
   <v-main class="rotations-main">
+    <Teleport to="body">
+      <button
+        v-if="controlsPanelVisible"
+        class="rotations-mobile-back"
+        type="button"
+        aria-label="Back to home"
+        @click="router.push({ name: 'home' })"
+      >
+        <v-icon icon="fas fa-chevron-left" />
+      </button>
+    </Teleport>
+
     <div class="workspace">
       <section class="court-area" :class="{ 'court-area--3d': viewMode === '3d' }">
         <div class="court-stage">
@@ -55,18 +67,15 @@ const statusMessage = computed(() => importStatus.value || shareLoadError.value)
 
       <ControlsPanel v-show="controlsPanelVisible" @import-status="importStatus = $event">
         <template #bottom>
-          <v-btn
+          <button
             class="rotations-back-btn"
-            variant="outlined"
-            density="comfortable"
-            aria-label="Back to learn menu"
-            @click="router.push({ path: '/learn' })"
+            type="button"
+            aria-label="Back to home"
+            @click="router.push({ name: 'home' })"
           >
-            <span class="rotations-back-btn__content">
-              <v-icon icon="fas fa-chevron-left" size="small" />
-              <span class="rotations-back-btn__label">Back</span>
-            </span>
-          </v-btn>
+            <v-icon icon="fas fa-chevron-left" />
+            <span>Back</span>
+          </button>
         </template>
       </ControlsPanel>
     </div>
@@ -82,24 +91,68 @@ $desktop-breakpoint: 801px;
   background: rgb(var(--v-theme-background));
 }
 
+.rotations-mobile-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+  left: max(0.75rem, env(safe-area-inset-left, 0.75rem));
+  z-index: 50;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(6px);
+  color: rgba(var(--v-theme-on-surface), 0.75);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+
+  :deep(.v-icon) {
+    font-size: 0.875rem !important;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.92);
+    color: rgba(var(--v-theme-on-surface), 0.95);
+  }
+}
+
+@media (min-width: $desktop-breakpoint) {
+  .rotations-mobile-back {
+    display: none;
+  }
+}
+
 // Desktop only
 .rotations-back-btn {
   display: none;
-  width: 100%;
-  min-width: 0;
-  height: auto !important;
-  min-height: 3rem;
-  padding: 0.65rem 1rem !important;
-  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
-  border-color: rgba(var(--v-theme-on-surface), var(--v-field-border-opacity, 0.38)) !important;
-
-  :deep(.v-btn__content) {
-    flex: none;
-    width: 100%;
-  }
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition:
+    color 0.15s,
+    background 0.15s;
+  align-self: flex-start;
 
   :deep(.v-icon) {
-    color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity)) !important;
+    font-size: 0.75rem !important;
+  }
+
+  &:hover {
+    color: rgba(var(--v-theme-on-surface), 0.75);
+    background: rgba(var(--v-border-color), 0.08);
   }
 }
 
@@ -107,23 +160,6 @@ $desktop-breakpoint: 801px;
   .rotations-back-btn {
     display: inline-flex;
   }
-}
-
-.rotations-back-btn__content {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.65rem;
-  width: 100%;
-}
-
-.rotations-back-btn__label {
-  font-family: var(--font-sport-display);
-  font-size: 1.375rem;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  transform: translateY(0.05em);
 }
 
 .workspace {

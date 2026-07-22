@@ -1,5 +1,4 @@
 import { COURT, PLAYER_MARKER_3D } from '@/components/court/courtGeometry'
-import { PLAY_COURT_SVG } from '@/lib/courtPlayLayout'
 import { APP_THEME_COLORS } from '@/styles/theme'
 
 const SCALE = 10

@@ -90,134 +90,136 @@ function resetLayout() {
 
 <template>
   <v-sheet class="controls-panel" elevation="1" rounded="0">
-    <h1 class="controls-panel__title">Rotations</h1>
+    <div class="controls-panel__content">
+      <h1 class="controls-panel__title">Rotations</h1>
 
-    <div class="panel-section formation-row">
-      <v-select
-        class="formation-row__group"
-        :model-value="activeGroupId"
-        :items="visibleFormations"
-        item-title="name"
-        item-value="id"
-        density="comfortable"
-        hide-details
-        variant="outlined"
-        @update:model-value="playerStore.setActiveGroup"
-      />
-
-      <div v-if="hasVariants" class="formation-row__variant-controls">
+      <div class="panel-section formation-row">
         <v-select
-          class="formation-row__variant"
-          :model-value="activeVariantId"
-          :items="playerStore.activeVariantOptions"
+          class="formation-row__group"
+          :model-value="activeGroupId"
+          :items="visibleFormations"
           item-title="name"
           item-value="id"
           density="comfortable"
           hide-details
           variant="outlined"
-          @update:model-value="playerStore.setActiveVariant"
+          @update:model-value="playerStore.setActiveGroup"
         />
-        <div class="formation-row__stepper-buttons">
-          <v-btn
-            class="variant-stepper-btn"
-            variant="outlined"
+
+        <div v-if="hasVariants" class="formation-row__variant-controls">
+          <v-select
+            class="formation-row__variant"
+            :model-value="activeVariantId"
+            :items="playerStore.activeVariantOptions"
+            item-title="name"
+            item-value="id"
             density="comfortable"
-            aria-label="Previous rotation"
-            @click="playerStore.stepActiveVariant(-1)"
-          >
-            <v-icon icon="fas fa-rotate-left" size="small" />
-          </v-btn>
-          <v-btn
-            class="variant-stepper-btn"
+            hide-details
             variant="outlined"
-            density="comfortable"
-            aria-label="Next rotation"
-            @click="playerStore.stepActiveVariant(1)"
-          >
-            <v-icon icon="fas fa-rotate-right" size="small" />
-          </v-btn>
+            @update:model-value="playerStore.setActiveVariant"
+          />
+          <div class="formation-row__stepper-buttons">
+            <v-btn
+              class="variant-stepper-btn"
+              variant="outlined"
+              density="comfortable"
+              aria-label="Previous rotation"
+              @click="playerStore.stepActiveVariant(-1)"
+            >
+              <v-icon icon="fas fa-rotate-left" size="small" />
+            </v-btn>
+            <v-btn
+              class="variant-stepper-btn"
+              variant="outlined"
+              density="comfortable"
+              aria-label="Next rotation"
+              @click="playerStore.stepActiveVariant(1)"
+            >
+              <v-icon icon="fas fa-rotate-right" size="small" />
+            </v-btn>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div v-if="playerStore.isFreePlayActive" class="panel-section free-play-actions">
-      <v-tooltip v-model="copiedTooltip" location="top" :open-on-hover="false">
-        <template #activator="{ props: tooltipProps }">
-          <v-btn
-            v-bind="tooltipProps"
-            class="free-play-action-btn"
-            variant="outlined"
-            density="comfortable"
-            @click="copyShareLink"
-          >
-            <span class="file-action-btn__content">
-              <v-icon icon="fas fa-link" size="small" />
-              <span class="file-action-btn__label">Copy link</span>
-            </span>
-          </v-btn>
-        </template>
-        Link copied
-      </v-tooltip>
+      <div v-if="playerStore.isFreePlayActive" class="panel-section free-play-actions">
+        <v-tooltip v-model="copiedTooltip" location="top" :open-on-hover="false">
+          <template #activator="{ props: tooltipProps }">
+            <v-btn
+              v-bind="tooltipProps"
+              class="free-play-action-btn"
+              variant="outlined"
+              density="comfortable"
+              @click="copyShareLink"
+            >
+              <span class="file-action-btn__content">
+                <v-icon icon="fas fa-link" size="small" />
+                <span class="file-action-btn__label">Copy link</span>
+              </span>
+            </v-btn>
+          </template>
+          Link copied
+        </v-tooltip>
 
-      <v-btn
-        v-if="!featureFlags.layoutPersistence"
-        class="free-play-action-btn"
-        variant="outlined"
-        density="comfortable"
-        @click="resetLayout"
-      >
-        <span class="file-action-btn__content">
-          <v-icon icon="fas fa-arrow-rotate-left" size="small" />
-          <span class="file-action-btn__label">Reset</span>
-        </span>
-      </v-btn>
-    </div>
-
-    <template v-if="featureFlags.layoutPersistence">
-      <div class="panel-section file-actions">
         <v-btn
-          class="file-action-btn"
+          v-if="!featureFlags.layoutPersistence"
+          class="free-play-action-btn"
           variant="outlined"
           density="comfortable"
-          @click="playerStore.saveCurrentLayout()"
+          @click="resetLayout"
         >
           <span class="file-action-btn__content">
-            <v-icon icon="fas fa-floppy-disk" size="small" />
-            <span class="file-action-btn__label">Save</span>
-          </span>
-        </v-btn>
-        <v-btn
-          class="file-action-btn"
-          variant="outlined"
-          density="comfortable"
-          @click="exportLayouts"
-        >
-          <span class="file-action-btn__content">
-            <v-icon icon="fas fa-download" size="small" />
-            <span class="file-action-btn__label">Export</span>
-          </span>
-        </v-btn>
-        <v-btn
-          class="file-action-btn"
-          variant="outlined"
-          density="comfortable"
-          @click="openImportPicker"
-        >
-          <span class="file-action-btn__content">
-            <v-icon icon="fas fa-upload" size="small" />
-            <span class="file-action-btn__label">Import</span>
+            <v-icon icon="fas fa-arrow-rotate-left" size="small" />
+            <span class="file-action-btn__label">Reset</span>
           </span>
         </v-btn>
       </div>
 
-      <input
-        ref="importInputRef"
-        class="hidden-input"
-        type="file"
-        accept="application/json"
-        @change="importLayouts"
-      />
-    </template>
+      <template v-if="featureFlags.layoutPersistence">
+        <div class="panel-section file-actions">
+          <v-btn
+            class="file-action-btn"
+            variant="outlined"
+            density="comfortable"
+            @click="playerStore.saveCurrentLayout()"
+          >
+            <span class="file-action-btn__content">
+              <v-icon icon="fas fa-floppy-disk" size="small" />
+              <span class="file-action-btn__label">Save</span>
+            </span>
+          </v-btn>
+          <v-btn
+            class="file-action-btn"
+            variant="outlined"
+            density="comfortable"
+            @click="exportLayouts"
+          >
+            <span class="file-action-btn__content">
+              <v-icon icon="fas fa-download" size="small" />
+              <span class="file-action-btn__label">Export</span>
+            </span>
+          </v-btn>
+          <v-btn
+            class="file-action-btn"
+            variant="outlined"
+            density="comfortable"
+            @click="openImportPicker"
+          >
+            <span class="file-action-btn__content">
+              <v-icon icon="fas fa-upload" size="small" />
+              <span class="file-action-btn__label">Import</span>
+            </span>
+          </v-btn>
+        </div>
+
+        <input
+          ref="importInputRef"
+          class="hidden-input"
+          type="file"
+          accept="application/json"
+          @change="importLayouts"
+        />
+      </template>
+    </div>
     <slot name="bottom" />
   </v-sheet>
 </template>
@@ -239,6 +241,13 @@ $desktop-breakpoint: 801px;
     color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
     border-color: rgba(var(--v-theme-on-surface), var(--v-field-border-opacity, 0.38)) !important;
   }
+}
+
+.controls-panel__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
 }
 
 .controls-panel__title {
@@ -351,10 +360,15 @@ $desktop-breakpoint: 801px;
     order: -1;
     width: min(34rem, 42vw);
     flex-shrink: 0;
-    justify-content: center;
     padding: 1.25rem;
     border-left: none;
     border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  }
+
+  // Fills the space above the (slotted) back button, centering controls within it
+  .controls-panel__content {
+    flex: 1;
+    justify-content: center;
   }
 
   .controls-panel__title {
