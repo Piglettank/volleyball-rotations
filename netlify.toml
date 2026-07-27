@@ -1,0 +1,11 @@
+[[redirects]]
+  from = "https://volleyrotations.fallberg.dev/*"
+  to = "https://volley-rotations.fallberg.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://volleyball-rotations.fallberg.dev/*"
+  to = "https://volley-rotations.fallberg.com/:splat"
+  status = 301
+  force = true
