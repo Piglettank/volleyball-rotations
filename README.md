@@ -7,8 +7,8 @@ Built with Vue 3, Vuetify, and a Canvas 2D renderer (no WebGL).
 ## What it does
 
 - Shows a full court with attack lines, three-meter lines, and net (in 3D).
-- Places six roster roles on court: setter, opposite, two middles, two left sides, and libero. Who is on court for a given rotation follows predefined lineups (e.g. which middle is front, libero in/out, double-middle when a middle serves).
-- Stores many **formation groups**, each with one or more **variants** (e.g. P1 serve, P1 receive, or attack-from-left defense).
+- Places six roster roles on court: setter, opposite, two middle blockers, two outside hitters, and libero. Who is on court for a given rotation follows predefined lineups (e.g. which middle blocker is front, libero in/out, double-middle when a middle blocker serves).
+- Stores many **formation groups**, each with one or more **variants** (e.g. S1 serve, S1 receive, or attack-from-left defense).
 - Lets you adjust each player’s position per variant and persist layouts in the browser or via JSON export/import.
 
 ## Using the app
@@ -21,14 +21,14 @@ Built with Vue 3, Vuetify, and a Canvas 2D renderer (no WebGL).
 ### Formations panel
 
 1. **Formation group** — Choose a category (e.g. *Start position*, *Defense (A-defense)*, *Free ball*).
-2. **Variant** — For groups with multiple rotations, pick a specific situation (e.g. *P4 receive*) or use the **previous / next** buttons to step through variants.
+2. **Variant** — For groups with multiple rotations, pick a specific situation (e.g. *S4 receive*) or use the **previous / next** buttons to step through variants.
 3. **Save** — Writes the current player positions for this variant to browser storage (`localStorage`).
 4. **Export** — Downloads all saved positions as `volleyball-formations.json`.
 5. **Import** — Loads positions from a previously exported JSON file (invalid files are rejected).
 
 Groups without variants (e.g. some free-ball setups) use a single layout for the whole group.
 
-The URL includes a `rotation` query parameter (e.g. `?rotation=p4-receive`) so you can link directly to a specific variant. Free-ball groups use the group id (e.g. `?rotation=free-ball-setter-back`).
+The URL includes a `rotation` query parameter (e.g. `?rotation=s4-receive`) so you can link directly to a specific variant. Free-ball groups use the group id (e.g. `?rotation=free-ball-setter-back`).
 
 ### Court
 
@@ -45,7 +45,7 @@ The URL includes a `rotation` query parameter (e.g. `?rotation=p4-receive`) so y
 - Player markers show as pins from the side, or as flat discs when looking from above.
 - Tap **2D** to return to the diagram.
 
-Markers use role abbreviations (S, O, MB, LE, L). The active variant decides which players appear on court for that rotation.
+Markers use role abbreviations (S, O, MB, OH, L). The active variant decides which players appear on court for that rotation.
 
 A **volleyball** (red outline) shows where the ball is for the current situation: opponent serve on receive, our serve on serve variants, left/middle/right at the net on attack defense. Free-ball formations hide the ball. Ball position follows the rotation id only and is not saved with layouts.
 

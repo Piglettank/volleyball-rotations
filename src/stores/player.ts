@@ -11,6 +11,7 @@ import type {
 import { isAdvancedDefenseGroup } from '@/config/advancedDefenseGroups'
 import { featureFlags } from '@/config/featureFlags'
 import { getBallPlacement } from '@/lib/ballPlacement'
+import { canonicalFormationId } from '@/lib/matchRotation'
 import {
   decodeFormationPayload,
   encodeFormationPayload,
@@ -22,13 +23,13 @@ import bundledFormationsJson from '../../public/volleyball-formations.json'
 const roster: RosterPlayer[] = [
   { id: 'setter-1', name: 'Setter', abbreviation: 'S' },
   { id: 'opposite-1', name: 'Opposite', abbreviation: 'O' },
-  /** Middle 2 is further from the setter*/
-  { id: 'middle-2', name: 'Middle 2', abbreviation: 'MB' },
-  { id: 'left-1', name: 'Left', abbreviation: 'LE' },
+  /** Middle blocker 2 is further from the setter*/
+  { id: 'middle-2', name: 'Middle blocker 2', abbreviation: 'MB' },
+  { id: 'left-1', name: 'Outside hitter 1', abbreviation: 'OH' },
   { id: 'libero', name: 'Libero', abbreviation: 'L' },
-  { id: 'left-2', name: 'Left', abbreviation: 'LE' },
-  /** Middle 1 is closer to the setter */
-  { id: 'middle-1', name: 'Middle 1', abbreviation: 'MB' },
+  { id: 'left-2', name: 'Outside hitter 2', abbreviation: 'OH' },
+  /** Middle blocker 1 is closer to the setter */
+  { id: 'middle-1', name: 'Middle blocker 1', abbreviation: 'MB' },
 ]
 
 type Lineup = string[]
@@ -57,18 +58,18 @@ const DOUBLE_MIDDLE_LINEUP: Lineup = [
 ]
 
 const ROTATION_LINEUPS: Partial<Record<string, Lineup>> = {
-  'p1-serve': M2_LINEUP,
-  'p1-receive': M2_LINEUP,
-  'p6-receive': M2_LINEUP,
-  'p6-serve': M2_LINEUP,
-  'p5-serve': DOUBLE_MIDDLE_LINEUP,
-  'p5-receive': M1_LINEUP,
-  'p4-serve': M1_LINEUP,
-  'p4-receive': M1_LINEUP,
-  'p3-serve': M1_LINEUP,
-  'p3-receive': M1_LINEUP,
-  'p2-serve': DOUBLE_MIDDLE_LINEUP,
-  'p2-receive': M2_LINEUP,
+  's1-serve': M2_LINEUP,
+  's1-receive': M2_LINEUP,
+  's6-receive': M2_LINEUP,
+  's6-serve': M2_LINEUP,
+  's5-serve': DOUBLE_MIDDLE_LINEUP,
+  's5-receive': M1_LINEUP,
+  's4-serve': M1_LINEUP,
+  's4-receive': M1_LINEUP,
+  's3-serve': M1_LINEUP,
+  's3-receive': M1_LINEUP,
+  's2-serve': DOUBLE_MIDDLE_LINEUP,
+  's2-receive': M2_LINEUP,
   'free-play': M1_LINEUP,
 }
 
@@ -95,7 +96,7 @@ function isRosterPlayerId(playerId: string): boolean {
 }
 
 function lineupForRotation(rotationId: string): Lineup {
-  return ROTATION_LINEUPS[rotationId] ?? M1_LINEUP
+  return ROTATION_LINEUPS[canonicalFormationId(rotationId)] ?? M1_LINEUP
 }
 
 function createVariant(
@@ -116,18 +117,18 @@ function buildInitialFormations(): FormationLibrary {
       id: 'start-position',
       name: 'Start position',
       variants: [
-        createVariant('p1-serve', 'P1 serve'),
-        createVariant('p1-receive', 'P1 receive'),
-        createVariant('p6-serve', 'P6 serve (Left 1 serve)'),
-        createVariant('p6-receive', 'P6 receive'),
-        createVariant('p5-serve', 'P5 serve (Middle Blocker 1 serve)'),
-        createVariant('p5-receive', 'P5 receive'),
-        createVariant('p4-serve', 'P4 serve (Opposite serve)'),
-        createVariant('p4-receive', 'P4 receive'),
-        createVariant('p3-serve', 'P3 serve (Left 2 serve)'),
-        createVariant('p3-receive', 'P3 receive'),
-        createVariant('p2-serve', 'P2 serve (Middle Blocker 2 serve)'),
-        createVariant('p2-receive', 'P2 receive'),
+        createVariant('s1-serve', 'S1 serve'),
+        createVariant('s1-receive', 'S1 receive'),
+        createVariant('s6-serve', 'S6 serve (Outside hitter 1 serve)'),
+        createVariant('s6-receive', 'S6 receive'),
+        createVariant('s5-serve', 'S5 serve (Middle blocker 1 serve)'),
+        createVariant('s5-receive', 'S5 receive'),
+        createVariant('s4-serve', 'S4 serve (Opposite serve)'),
+        createVariant('s4-receive', 'S4 receive'),
+        createVariant('s3-serve', 'S3 serve (Outside hitter 2 serve)'),
+        createVariant('s3-receive', 'S3 receive'),
+        createVariant('s2-serve', 'S2 serve (Middle blocker 2 serve)'),
+        createVariant('s2-receive', 'S2 receive'),
       ],
     },
     {
@@ -274,7 +275,7 @@ function normalizeSavedRotations(raw: unknown): SavedRotations | null {
   const saved: SavedRotations = {}
 
   for (const [rotationId, coordinates] of Object.entries(raw as Record<string, unknown>)) {
-    const id = rotationId.trim()
+    const id = canonicalFormationId(rotationId.trim())
     if (!id) {
       continue
     }
@@ -477,13 +478,14 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function setActiveRotation(rotationId: string): boolean {
+    const id = canonicalFormationId(rotationId)
     for (const group of formations.value) {
       if (!featureFlags.advancedDefense && isAdvancedDefenseGroup(group.id)) {
         continue
       }
 
       if (group.variants?.length) {
-        const variant = group.variants.find((entry) => entry.id === rotationId)
+        const variant = group.variants.find((entry) => entry.id === id)
         if (!variant) {
           continue
         }
@@ -493,7 +495,7 @@ export const usePlayerStore = defineStore('player', () => {
         return true
       }
 
-      if (group.id === rotationId) {
+      if (group.id === id) {
         activeGroupId.value = group.id
         activeVariantId.value = null
         return true

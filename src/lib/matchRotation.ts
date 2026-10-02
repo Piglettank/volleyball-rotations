@@ -4,7 +4,12 @@ import bundledFormationsJson from '../../public/volleyball-formations.json'
 
 /** Maps rotation number + serve/receive → bundled formation id */
 export function rotationVariantId(rotation: RotationNumber, role: 'serve' | 'receive'): string {
-  return `p${rotation}-${role}`
+  return `s${rotation}-${role}`
+}
+
+/** Accepts legacy p1–p6 formation ids. */
+export function canonicalFormationId(id: string): string {
+  return id.replace(/^p([1-6])-(serve|receive)$/, 's$1-$2')
 }
 
 /** Get formation id for a team given their rotation and whether they are serving */
@@ -21,7 +26,8 @@ const formations = bundledFormationsJson as Record<string, Record<string, { x: n
 
 /** Get raw coordinates from bundled JSON for a given formation id */
 export function getFormationCoordinates(formationId: string): PlayerCoordinates {
-  return (formations[formationId] as PlayerCoordinates | undefined) ?? {}
+  const id = canonicalFormationId(formationId)
+  return (formations[id] as PlayerCoordinates | undefined) ?? {}
 }
 
 type Lineup = string[]
@@ -38,30 +44,30 @@ const DOUBLE_MIDDLE_LINEUP: Lineup = [
 ]
 
 const ROTATION_LINEUPS: Partial<Record<string, Lineup>> = {
-  'p1-serve': M2_LINEUP,
-  'p1-receive': M2_LINEUP,
-  'p6-receive': M2_LINEUP,
-  'p6-serve': M2_LINEUP,
-  'p5-serve': DOUBLE_MIDDLE_LINEUP,
-  'p5-receive': M1_LINEUP,
-  'p4-serve': M1_LINEUP,
-  'p4-receive': M1_LINEUP,
-  'p3-serve': M1_LINEUP,
-  'p3-receive': M1_LINEUP,
-  'p2-serve': DOUBLE_MIDDLE_LINEUP,
-  'p2-receive': M2_LINEUP,
+  's1-serve': M2_LINEUP,
+  's1-receive': M2_LINEUP,
+  's6-receive': M2_LINEUP,
+  's6-serve': M2_LINEUP,
+  's5-serve': DOUBLE_MIDDLE_LINEUP,
+  's5-receive': M1_LINEUP,
+  's4-serve': M1_LINEUP,
+  's4-receive': M1_LINEUP,
+  's3-serve': M1_LINEUP,
+  's3-receive': M1_LINEUP,
+  's2-serve': DOUBLE_MIDDLE_LINEUP,
+  's2-receive': M2_LINEUP,
 }
 
 export function lineupForRotation(rotationId: string): Lineup {
-  return ROTATION_LINEUPS[rotationId] ?? M1_LINEUP
+  return ROTATION_LINEUPS[canonicalFormationId(rotationId)] ?? M1_LINEUP
 }
 
 export const ROLE_DISPLAY: Record<string, { name: string; abbr: string }> = {
   'setter-1': { name: 'Setter', abbr: 'S' },
   'opposite-1': { name: 'Opposite', abbr: 'O' },
-  'middle-1': { name: 'Middle 1', abbr: 'MB' },
-  'middle-2': { name: 'Middle 2', abbr: 'MB' },
-  'left-1': { name: 'Left', abbr: 'LE' },
+  'middle-1': { name: 'Middle blocker 1', abbr: 'MB' },
+  'middle-2': { name: 'Middle blocker 2', abbr: 'MB' },
+  'left-1': { name: 'Outside hitter 1', abbr: 'OH' },
   libero: { name: 'Libero', abbr: 'L' },
-  'left-2': { name: 'Left 2', abbr: 'LE' },
+  'left-2': { name: 'Outside hitter 2', abbr: 'OH' },
 }
