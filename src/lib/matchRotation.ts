@@ -65,9 +65,9 @@ export function lineupForRotation(rotationId: string): Lineup {
 export const ROLE_DISPLAY: Record<string, { name: string; abbr: string }> = {
   'setter-1': { name: 'Setter', abbr: 'S' },
   'opposite-1': { name: 'Opposite', abbr: 'O' },
-  'middle-1': { name: 'Middle blocker 1', abbr: 'MB' },
-  'middle-2': { name: 'Middle blocker 2', abbr: 'MB' },
-  'left-1': { name: 'Outside hitter 1', abbr: 'OH' },
+  'middle-1': { name: 'Middle blocker 1', abbr: 'MB¹' },
+  'middle-2': { name: 'Middle blocker 2', abbr: 'MB²' },
+  'left-1': { name: 'Outside hitter 1', abbr: 'OH¹' },
   libero: { name: 'Libero', abbr: 'L' },
-  'left-2': { name: 'Outside hitter 2', abbr: 'OH' },
+  'left-2': { name: 'Outside hitter 2', abbr: 'OH²' },
 }

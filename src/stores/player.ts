@@ -24,12 +24,12 @@ const roster: RosterPlayer[] = [
   { id: 'setter-1', name: 'Setter', abbreviation: 'S' },
   { id: 'opposite-1', name: 'Opposite', abbreviation: 'O' },
   /** Middle blocker 2 is further from the setter*/
-  { id: 'middle-2', name: 'Middle blocker 2', abbreviation: 'MB' },
-  { id: 'left-1', name: 'Outside hitter 1', abbreviation: 'OH' },
+  { id: 'middle-2', name: 'Middle blocker 2', abbreviation: 'MB²' },
+  { id: 'left-1', name: 'Outside hitter 1', abbreviation: 'OH¹' },
   { id: 'libero', name: 'Libero', abbreviation: 'L' },
-  { id: 'left-2', name: 'Outside hitter 2', abbreviation: 'OH' },
+  { id: 'left-2', name: 'Outside hitter 2', abbreviation: 'OH²' },
   /** Middle blocker 1 is closer to the setter */
-  { id: 'middle-1', name: 'Middle blocker 1', abbreviation: 'MB' },
+  { id: 'middle-1', name: 'Middle blocker 1', abbreviation: 'MB¹' },
 ]
 
 type Lineup = string[]

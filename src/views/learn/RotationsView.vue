@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 
 import Court from '@/components/court/Court.vue'
 import ControlsPanel from '@/components/ControlsPanel.vue'
+import RotationCheatSheet from '@/components/learn/RotationCheatSheet.vue'
 import { COURT_COLORS, type ViewMode } from '@/components/court/courtGeometry'
 import { ROTATIONS_CAMERA_3D } from '@/components/court/courtProjection'
 import { useRotationUrlSync } from '@/composables/useRotationUrlSync'
@@ -52,6 +53,10 @@ const statusMessage = computed(() => importStatus.value || shareLoadError.value)
               playerStore.setActiveCoordinate($event.playerId, $event.coordinate)
             "
           />
+        </div>
+
+        <div class="court-area__cheat-sheet">
+          <RotationCheatSheet :rotation-id="playerStore.currentRotationId" />
         </div>
 
         <v-alert
@@ -169,6 +174,7 @@ $desktop-breakpoint: 801px;
 }
 
 .court-area {
+  position: relative;
   flex: 1;
   background-color: v-bind(courtAreaColor);
   display: flex;
@@ -192,6 +198,14 @@ $desktop-breakpoint: 801px;
   min-height: 0;
 }
 
+.court-area__cheat-sheet {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
 .import-alert {
   margin-top: 0.75rem;
   max-width: 24rem;
@@ -208,6 +222,10 @@ $desktop-breakpoint: 801px;
 
   .court-area {
     padding: 0;
+  }
+
+  .court-area__cheat-sheet {
+    display: block;
   }
 }
 
