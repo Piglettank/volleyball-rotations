@@ -1,3 +1,4 @@
+import { roleAbbreviation, roleName } from '@/i18n/formationNames'
 import type { PlayerCoordinates } from '@/models/rotation'
 import type { RotationNumber, TeamSide } from '@/models/match'
 import bundledFormationsJson from '../../public/volleyball-formations.json'
@@ -70,4 +71,13 @@ export const ROLE_DISPLAY: Record<string, { name: string; abbr: string }> = {
   'left-1': { name: 'Outside hitter 1', abbr: 'OH¹' },
   libero: { name: 'Libero', abbr: 'L' },
   'left-2': { name: 'Outside hitter 2', abbr: 'OH²' },
+}
+
+/** Role name and abbreviation in the current UI language. */
+export function roleDisplay(roleId: string): { name: string; abbr: string } | undefined {
+  const role = ROLE_DISPLAY[roleId]
+  if (!role) {
+    return undefined
+  }
+  return { name: roleName(roleId, role.name), abbr: roleAbbreviation(roleId, role.abbr) }
 }

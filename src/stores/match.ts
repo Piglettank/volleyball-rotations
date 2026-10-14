@@ -14,12 +14,16 @@ import {
   opponentTeam,
   COURT_ROLE_IDS,
 } from '@/models/match'
+import { t } from '@/i18n'
 
 const STORAGE_KEY = 'bolleyvoll-active-match-v2'
 
+/** Stored default team names; shown translated until the user renames the team. */
+const DEFAULT_TEAM_NAMES: Record<TeamSide, string> = { home: 'Home', away: 'Away' }
+
 const DEFAULT_CONFIG: MatchConfig = {
-  homeTeamName: 'Home',
-  awayTeamName: 'Away',
+  homeTeamName: DEFAULT_TEAM_NAMES.home,
+  awayTeamName: DEFAULT_TEAM_NAMES.away,
   rosterPlayerIds: [],
   initialServingTeam: 'home',
 }
@@ -237,13 +241,23 @@ export const useMatchStore = defineStore('match', () => {
     saveToStorage(matchState.value)
   }
 
+  /** Team name for display — the default name follows the UI language. */
+  function teamName(team: TeamSide): string {
+    const config = matchState.value?.config
+    const name = (team === 'home' ? config?.homeTeamName : config?.awayTeamName) ?? ''
+    return name === DEFAULT_TEAM_NAMES[team] ? t(`play.${team}`) : name
+  }
+
   function setTeamName(team: TeamSide, name: string) {
     if (!matchState.value) return
     const trimmed = name.trim()
+    // Keep the default (untranslated) name when it is left empty or unchanged.
+    const stored =
+      !trimmed || trimmed === t(`play.${team}`) ? DEFAULT_TEAM_NAMES[team] : trimmed
     if (team === 'home') {
-      matchState.value.config.homeTeamName = trimmed || 'Home'
+      matchState.value.config.homeTeamName = stored
     } else {
-      matchState.value.config.awayTeamName = trimmed || 'Away'
+      matchState.value.config.awayTeamName = stored
     }
     saveToStorage(matchState.value)
   }
@@ -285,6 +299,7 @@ export const useMatchStore = defineStore('match', () => {
     completeSet,
     undo,
     assignPlayer,
+    teamName,
     setTeamName,
     setRosterPlayerIds,
     endMatch,

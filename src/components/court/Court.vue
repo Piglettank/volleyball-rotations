@@ -9,6 +9,7 @@ import {
   type ViewMode,
 } from '@/components/court/courtGeometry'
 import type { Camera3D } from '@/components/court/courtProjection'
+import { t } from '@/i18n'
 import type { BallPlacement } from '@/lib/ballPlacement'
 import type { CourtCoordinate } from '@/models/player'
 import type { PlayerModel } from '@/models/player'
@@ -33,7 +34,9 @@ function toggleViewMode() {
   viewMode.value = viewMode.value === '3d' ? '2d' : '3d'
 }
 
-const controlsPanelToggleLabel = computed(() => (controlsPanelVisible.value ? 'Full' : 'Panel'))
+const controlsPanelToggleLabel = computed(() =>
+  t(controlsPanelVisible.value ? 'court.full' : 'court.panel'),
+)
 
 const controlsPanelToggleIcon = computed(() =>
   controlsPanelVisible.value
@@ -55,6 +58,90 @@ function toggleDrawMode() {
 
 function clearDrawings() {
   courtCanvasRef.value?.clearDrawings()
+}
+
+type CourtAction = {
+  id: string
+  /** Single-letter keyboard shortcut (lowercase). */
+  hotkey: string
+  icon: string
+  label: string
+  description: string
+  visible: boolean
+  active?: boolean
+  run: () => void
+}
+
+const courtActions = computed((): CourtAction[] => [
+  {
+    id: 'clear',
+    hotkey: 'c',
+    icon: 'fas fa-eraser',
+    label: t('court.clear'),
+    description: t('court.clearDrawings'),
+    visible: hasDrawings.value,
+    run: clearDrawings,
+  },
+  {
+    id: 'draw',
+    hotkey: 'p',
+    icon: 'fas fa-pencil',
+    label: t('court.draw'),
+    description: t(drawMode.value ? 'court.exitDrawMode' : 'court.enterDrawMode'),
+    visible: true,
+    active: drawMode.value,
+    run: toggleDrawMode,
+  },
+  {
+    id: 'panel',
+    hotkey: 'f',
+    icon: controlsPanelToggleIcon.value,
+    label: controlsPanelToggleLabel.value,
+    description: t(controlsPanelVisible.value ? 'court.hidePanel' : 'court.showPanel'),
+    visible: true,
+    run: toggleControlsPanel,
+  },
+  {
+    id: 'view',
+    hotkey: 'd',
+    icon: viewModeToggleIcon.value,
+    label: viewModeToggleLabel.value,
+    description: t('court.switchView', { mode: viewModeToggleLabel.value }),
+    visible: true,
+    run: toggleViewMode,
+  },
+])
+
+// Hotkey tooltips only make sense with a real hover pointer (not touch).
+const canHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+  return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+}
+
+function onHotkey(event: KeyboardEvent) {
+  if (
+    event.defaultPrevented ||
+    event.repeat ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.altKey ||
+    isTypingTarget(event.target)
+  ) {
+    return
+  }
+
+  const key = event.key.toLowerCase()
+  const action = courtActions.value.find((entry) => entry.visible && entry.hotkey === key)
+  if (!action) {
+    return
+  }
+
+  event.preventDefault()
+  action.run()
 }
 
 const emit = defineEmits<{
@@ -111,6 +198,7 @@ function updateLayoutFromContainer() {
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
+  window.addEventListener('keydown', onHotkey)
   updateLayoutFromContainer()
   resizeObserver = new ResizeObserver(updateLayoutFromContainer)
   if (containerRef.value) {
@@ -119,6 +207,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', onHotkey)
   resizeObserver?.disconnect()
   resizeObserver = null
 })
@@ -147,63 +236,32 @@ onUnmounted(() => {
     </div>
 
     <div class="court-actions">
-      <v-btn
-        v-if="hasDrawings"
-        class="court-action-btn"
-        variant="flat"
-        size="small"
-        aria-label="Clear drawings"
-        @click="clearDrawings"
-        @pointerdown.stop
-      >
-        <span class="court-action-btn__content">
-          <v-icon icon="fas fa-eraser" size="small" />
-          <span class="court-action-btn__label">Clear</span>
-        </span>
-      </v-btn>
-
-      <v-btn
-        class="court-action-btn"
-        :class="{ 'court-action-btn--active': drawMode }"
-        variant="flat"
-        size="small"
-        :aria-label="drawMode ? 'Exit draw mode' : 'Enter draw mode'"
-        @click="toggleDrawMode"
-        @pointerdown.stop
-      >
-        <span class="court-action-btn__content">
-          <v-icon icon="fas fa-pencil" size="small" />
-          <span class="court-action-btn__label">Draw</span>
-        </span>
-      </v-btn>
-
-      <v-btn
-        class="court-action-btn"
-        variant="flat"
-        size="small"
-        :aria-label="controlsPanelVisible ? 'Hide control panel' : 'Show control panel'"
-        @click="toggleControlsPanel"
-        @pointerdown.stop
-      >
-        <span class="court-action-btn__content">
-          <v-icon :icon="controlsPanelToggleIcon" size="small" />
-          <span class="court-action-btn__label">{{ controlsPanelToggleLabel }}</span>
-        </span>
-      </v-btn>
-
-      <v-btn
-        class="court-action-btn"
-        variant="flat"
-        size="small"
-        :aria-label="`Switch to ${viewModeToggleLabel} view`"
-        @click="toggleViewMode"
-        @pointerdown.stop
-      >
-        <span class="court-action-btn__content">
-          <v-icon :icon="viewModeToggleIcon" size="small" />
-          <span class="court-action-btn__label">{{ viewModeToggleLabel }}</span>
-        </span>
-      </v-btn>
+      <template v-for="action in courtActions" :key="action.id">
+        <v-tooltip v-if="action.visible" location="left" :open-delay="700" :disabled="!canHover">
+          <template #activator="{ props: tooltipProps }">
+            <v-btn
+              v-bind="tooltipProps"
+              class="court-action-btn"
+              :class="{ 'court-action-btn--active': action.active }"
+              variant="flat"
+              size="small"
+              :aria-label="action.description"
+              :aria-keyshortcuts="action.hotkey.toUpperCase()"
+              @click="action.run"
+              @pointerdown.stop
+            >
+              <span class="court-action-btn__content">
+                <v-icon :icon="action.icon" size="small" />
+                <span class="court-action-btn__label">{{ action.label }}</span>
+              </span>
+            </v-btn>
+          </template>
+          <span class="court-action-tooltip">
+            {{ action.description }}
+            <kbd class="court-action-tooltip__key">{{ action.hotkey.toUpperCase() }}</kbd>
+          </span>
+        </v-tooltip>
+      </template>
     </div>
   </div>
 </template>
@@ -292,5 +350,24 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: 0.02em;
   color: #000;
+}
+
+.court-action-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.court-action-tooltip__key {
+  min-width: 1.25rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.25);
+  border-radius: 0.25rem;
+  background: rgb(var(--v-theme-surface));
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
 }
 </style>

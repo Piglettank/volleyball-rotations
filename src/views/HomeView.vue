@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import LanguageToggle from '@/components/LanguageToggle.vue'
+import { t } from '@/i18n'
 import { getHeroUrl } from '@/lib/heroes'
 
 const router = useRouter()
@@ -18,30 +20,32 @@ function goToLearn() {
 <template>
   <v-main class="home-main">
     <div class="home">
+      <LanguageToggle class="home__language" />
+
       <aside class="home__sidebar">
         <header class="home__header">
           <img class="home__icon" src="/favicon.ico" alt="" width="52" height="52" />
           <h1 class="home__title">Volley Rotations</h1>
         </header>
 
-        <nav class="home__menu" aria-label="Main menu">
+        <nav class="home__menu" :aria-label="t('home.mainMenu')">
           <v-btn
             class="home__menu-btn"
             variant="outlined"
             density="comfortable"
-            aria-label="Play"
+            :aria-label="t('home.play')"
             @click="goToPlay"
           >
             <span class="home__menu-btn-content">
               <v-icon icon="fas fa-play" size="small" />
-              <span class="home__menu-label">Play</span>
+              <span class="home__menu-label">{{ t('home.play') }}</span>
             </span>
           </v-btn>
 
           <v-btn class="home__menu-btn" variant="outlined" density="comfortable" @click="goToLearn">
             <span class="home__menu-btn-content">
               <v-icon icon="fas fa-graduation-cap" size="small" />
-              <span class="home__menu-label">Learn</span>
+              <span class="home__menu-label">{{ t('home.learn') }}</span>
             </span>
           </v-btn>
         </nav>
@@ -79,12 +83,30 @@ $mobile-breakpoint: 640px;
 }
 
 .home {
+  position: relative;
   display: flex;
   flex-direction: row;
   flex: 1;
   width: 100%;
   min-height: 0;
   height: 100%;
+}
+
+// Mobile: top right, same as on Learn → Rotations
+.home__language {
+  position: absolute;
+  top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+  right: max(0.75rem, env(safe-area-inset-right, 0.75rem));
+  z-index: 2;
+}
+
+// Desktop: top left, matching the flag inside the Learn → Rotations side panel (its 1.25rem padding)
+@media (min-width: $desktop-breakpoint) {
+  .home__language {
+    top: 1.25rem;
+    right: auto;
+    left: 1.25rem;
+  }
 }
 
 .home__sidebar {
@@ -140,7 +162,11 @@ $mobile-breakpoint: 640px;
   min-height: 3rem;
   padding: 0.65rem 1rem !important;
   color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
-  border-color: rgba(var(--v-theme-on-surface), var(--v-field-border-opacity, 0.38)) !important;
+  // Same effective tone as the v-select outline (high-emphasis color × field border opacity)
+  border-color: rgba(
+    var(--v-theme-on-surface),
+    calc(var(--v-high-emphasis-opacity, 0.87) * var(--v-field-border-opacity, 0.38))
+  ) !important;
 
   :deep(.v-btn__content) {
     flex: none;

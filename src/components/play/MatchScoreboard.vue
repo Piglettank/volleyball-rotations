@@ -3,6 +3,7 @@ import { computed, nextTick, ref } from 'vue'
 import { useMatchStore } from '@/stores/match'
 import type { TeamSide } from '@/models/match'
 import { rotationLabel, teamOnLeft, teamOnRight } from '@/models/match'
+import { t } from '@/i18n'
 
 const matchStore = useMatchStore()
 const s = computed(() => matchStore.state!)
@@ -12,7 +13,7 @@ const rightTeam = computed(() => teamOnRight(s.value.sidesSwapped))
 const isPlanning = computed(() => matchStore.canAdjustRotation)
 
 function teamName(team: TeamSide) {
-  return team === 'home' ? s.value.config.homeTeamName : s.value.config.awayTeamName
+  return matchStore.teamName(team)
 }
 
 function teamScore(team: TeamSide) {
@@ -55,7 +56,7 @@ function setServe(team: TeamSide) {
 
 async function startEditName(team: TeamSide) {
   editingTeam.value = team
-  draftName.value = team === 'home' ? s.value.config.homeTeamName : s.value.config.awayTeamName
+  draftName.value = teamName(team)
   await nextTick()
   nameInputRef.value?.focus()
   nameInputRef.value?.select()
@@ -83,51 +84,51 @@ function toggleSides() {
       <span
         v-if="isServing(leftTeam)"
         class="scoreboard__serve-badge scoreboard__serve-badge--active"
-        aria-label="Serving"
+        :aria-label="t('play.serving')"
       >
         <v-icon icon="fas fa-volleyball" size="small" />
-        <span>Serve</span>
+        <span>{{ t('play.serve') }}</span>
       </span>
       <button
         v-else-if="canChangeServe"
         type="button"
         class="scoreboard__serve-badge scoreboard__serve-badge--pickable"
-        title="Set as server"
+        :title="t('play.setAsServer')"
         @click="setServe(leftTeam)"
       >
         <v-icon icon="fas fa-volleyball" size="small" />
-        <span>Serve</span>
+        <span>{{ t('play.serve') }}</span>
       </button>
     </div>
 
     <button
       type="button"
       class="scoreboard__switch-sides"
-      title="Switch sides"
+      :title="t('play.switchSides')"
       @click="toggleSides"
     >
       <v-icon icon="fas fa-right-left" size="x-small" />
-      <span>Switch sides</span>
+      <span>{{ t('play.switchSides') }}</span>
     </button>
 
     <div class="scoreboard__serve scoreboard__serve--right">
       <span
         v-if="isServing(rightTeam)"
         class="scoreboard__serve-badge scoreboard__serve-badge--active"
-        aria-label="Serving"
+        :aria-label="t('play.serving')"
       >
         <v-icon icon="fas fa-volleyball" size="small" />
-        <span>Serve</span>
+        <span>{{ t('play.serve') }}</span>
       </span>
       <button
         v-else-if="canChangeServe"
         type="button"
         class="scoreboard__serve-badge scoreboard__serve-badge--pickable"
-        title="Set as server"
+        :title="t('play.setAsServer')"
         @click="setServe(rightTeam)"
       >
         <v-icon icon="fas fa-volleyball" size="small" />
-        <span>Serve</span>
+        <span>{{ t('play.serve') }}</span>
       </button>
     </div>
 
@@ -139,7 +140,7 @@ function toggleSides() {
         v-if="editingTeam !== leftTeam"
         type="button"
         class="scoreboard__name"
-        title="Click to edit team name"
+        :title="t('play.editTeamName')"
         @click="startEditName(leftTeam)"
       >
         {{ teamName(leftTeam) }}
@@ -150,19 +151,24 @@ function toggleSides() {
         v-model="draftName"
         class="scoreboard__name-input"
         type="text"
-        :aria-label="`${teamName(leftTeam)} team name`"
+        :aria-label="t('play.teamNameLabel', { team: teamName(leftTeam) })"
         @keydown.enter="commitEditName"
         @keydown.escape="cancelEditName"
         @blur="commitEditName"
       />
       <div
         class="scoreboard__rotation"
-        :aria-label="`${teamName(leftTeam)} starting rotation ${rotationLabel(teamRotation(leftTeam))}`"
+        :aria-label="
+          t('play.startingRotation', {
+            team: teamName(leftTeam),
+            rotation: rotationLabel(teamRotation(leftTeam)),
+          })
+        "
       >
         <button
           type="button"
           class="scoreboard__rotation-btn"
-          aria-label="Previous rotation"
+          :aria-label="t('rotations.previous')"
           @click="stepRotation(leftTeam, -1)"
         >
           <v-icon icon="fas fa-rotate-left" size="x-small" />
@@ -171,7 +177,7 @@ function toggleSides() {
         <button
           type="button"
           class="scoreboard__rotation-btn"
-          aria-label="Next rotation"
+          :aria-label="t('rotations.next')"
           @click="stepRotation(leftTeam, 1)"
         >
           <v-icon icon="fas fa-rotate-right" size="x-small" />
@@ -180,23 +186,23 @@ function toggleSides() {
     </div>
 
     <div class="scoreboard__board">
-      <span class="scoreboard__points-big" :aria-label="`${teamName(leftTeam)} score`">
+      <span class="scoreboard__points-big" :aria-label="t('play.teamScore', { team: teamName(leftTeam) })">
         {{ teamScore(leftTeam) }}
       </span>
-      <div class="scoreboard__sets" aria-label="Sets won">
+      <div class="scoreboard__sets" :aria-label="t('play.setsWon')">
         <span
           class="scoreboard__sets-num"
-          @mouseenter="setsTooltip = `${teamName(leftTeam)} sets won`"
+          @mouseenter="setsTooltip = t('play.teamSetsWon', { team: teamName(leftTeam) })"
           @mouseleave="setsTooltip = null"
         >{{ teamSetsWon(leftTeam) }}</span>
         <span
           class="scoreboard__sets-num"
-          @mouseenter="setsTooltip = `${teamName(rightTeam)} sets won`"
+          @mouseenter="setsTooltip = t('play.teamSetsWon', { team: teamName(rightTeam) })"
           @mouseleave="setsTooltip = null"
         >{{ teamSetsWon(rightTeam) }}</span>
         <div v-if="setsTooltip" class="scoreboard__sets-tooltip">{{ setsTooltip }}</div>
       </div>
-      <span class="scoreboard__points-big" :aria-label="`${teamName(rightTeam)} score`">
+      <span class="scoreboard__points-big" :aria-label="t('play.teamScore', { team: teamName(rightTeam) })">
         {{ teamScore(rightTeam) }}
       </span>
     </div>
@@ -209,7 +215,7 @@ function toggleSides() {
         v-if="editingTeam !== rightTeam"
         type="button"
         class="scoreboard__name"
-        title="Click to edit team name"
+        :title="t('play.editTeamName')"
         @click="startEditName(rightTeam)"
       >
         {{ teamName(rightTeam) }}
@@ -220,19 +226,24 @@ function toggleSides() {
         v-model="draftName"
         class="scoreboard__name-input scoreboard__name-input--right"
         type="text"
-        :aria-label="`${teamName(rightTeam)} team name`"
+        :aria-label="t('play.teamNameLabel', { team: teamName(rightTeam) })"
         @keydown.enter="commitEditName"
         @keydown.escape="cancelEditName"
         @blur="commitEditName"
       />
       <div
         class="scoreboard__rotation"
-        :aria-label="`${teamName(rightTeam)} starting rotation ${rotationLabel(teamRotation(rightTeam))}`"
+        :aria-label="
+          t('play.startingRotation', {
+            team: teamName(rightTeam),
+            rotation: rotationLabel(teamRotation(rightTeam)),
+          })
+        "
       >
         <button
           type="button"
           class="scoreboard__rotation-btn"
-          aria-label="Previous rotation"
+          :aria-label="t('rotations.previous')"
           @click="stepRotation(rightTeam, -1)"
         >
           <v-icon icon="fas fa-rotate-left" size="x-small" />
@@ -241,7 +252,7 @@ function toggleSides() {
         <button
           type="button"
           class="scoreboard__rotation-btn"
-          aria-label="Next rotation"
+          :aria-label="t('rotations.next')"
           @click="stepRotation(rightTeam, 1)"
         >
           <v-icon icon="fas fa-rotate-right" size="x-small" />
@@ -259,16 +270,16 @@ function toggleSides() {
       <span
         v-if="isServing(leftTeam)"
         class="scoreboard__serve-badge scoreboard__serve-badge--active"
-        aria-label="Serving"
+        :aria-label="t('play.serving')"
       >
         <v-icon icon="fas fa-volleyball" size="small" />
-        <span>Serve</span>
+        <span>{{ t('play.serve') }}</span>
       </span>
       <button
         v-if="editingTeam !== leftTeam"
         type="button"
         class="scoreboard__name"
-        title="Click to edit team name"
+        :title="t('play.editTeamName')"
         @click="startEditName(leftTeam)"
       >
         {{ teamName(leftTeam) }}
@@ -279,7 +290,7 @@ function toggleSides() {
         v-model="draftName"
         class="scoreboard__name-input"
         type="text"
-        :aria-label="`${teamName(leftTeam)} team name`"
+        :aria-label="t('play.teamNameLabel', { team: teamName(leftTeam) })"
         @keydown.enter="commitEditName"
         @keydown.escape="cancelEditName"
         @blur="commitEditName"
@@ -287,23 +298,23 @@ function toggleSides() {
     </div>
 
     <div class="scoreboard__board">
-      <span class="scoreboard__points-big" :aria-label="`${teamName(leftTeam)} score`">
+      <span class="scoreboard__points-big" :aria-label="t('play.teamScore', { team: teamName(leftTeam) })">
         {{ teamScore(leftTeam) }}
       </span>
-      <div class="scoreboard__sets" aria-label="Sets won">
+      <div class="scoreboard__sets" :aria-label="t('play.setsWon')">
         <span
           class="scoreboard__sets-num"
-          @mouseenter="setsTooltip = `${teamName(leftTeam)} sets won`"
+          @mouseenter="setsTooltip = t('play.teamSetsWon', { team: teamName(leftTeam) })"
           @mouseleave="setsTooltip = null"
         >{{ teamSetsWon(leftTeam) }}</span>
         <span
           class="scoreboard__sets-num"
-          @mouseenter="setsTooltip = `${teamName(rightTeam)} sets won`"
+          @mouseenter="setsTooltip = t('play.teamSetsWon', { team: teamName(rightTeam) })"
           @mouseleave="setsTooltip = null"
         >{{ teamSetsWon(rightTeam) }}</span>
         <div v-if="setsTooltip" class="scoreboard__sets-tooltip">{{ setsTooltip }}</div>
       </div>
-      <span class="scoreboard__points-big" :aria-label="`${teamName(rightTeam)} score`">
+      <span class="scoreboard__points-big" :aria-label="t('play.teamScore', { team: teamName(rightTeam) })">
         {{ teamScore(rightTeam) }}
       </span>
     </div>
@@ -315,16 +326,16 @@ function toggleSides() {
       <span
         v-if="isServing(rightTeam)"
         class="scoreboard__serve-badge scoreboard__serve-badge--active"
-        aria-label="Serving"
+        :aria-label="t('play.serving')"
       >
         <v-icon icon="fas fa-volleyball" size="small" />
-        <span>Serve</span>
+        <span>{{ t('play.serve') }}</span>
       </span>
       <button
         v-if="editingTeam !== rightTeam"
         type="button"
         class="scoreboard__name"
-        title="Click to edit team name"
+        :title="t('play.editTeamName')"
         @click="startEditName(rightTeam)"
       >
         {{ teamName(rightTeam) }}
@@ -335,7 +346,7 @@ function toggleSides() {
         v-model="draftName"
         class="scoreboard__name-input scoreboard__name-input--right"
         type="text"
-        :aria-label="`${teamName(rightTeam)} team name`"
+        :aria-label="t('play.teamNameLabel', { team: teamName(rightTeam) })"
         @keydown.enter="commitEditName"
         @keydown.escape="cancelEditName"
         @blur="commitEditName"

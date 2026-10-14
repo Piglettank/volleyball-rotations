@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useMatchStore } from '@/stores/match'
 import RosterManager from '@/components/play/RosterManager.vue'
+import { t } from '@/i18n'
 
 const open = defineModel<boolean>({ default: false })
 
@@ -93,7 +94,7 @@ function onTouchEnd() {
 <template>
   <Teleport to="body">
     <Transition name="roster-drawer">
-      <div v-if="open" class="roster-drawer" role="dialog" aria-modal="true" aria-label="Players">
+      <div v-if="open" class="roster-drawer" role="dialog" aria-modal="true" :aria-label="t('play.players')">
         <div class="roster-drawer__backdrop" aria-hidden="true" @click="close" />
 
         <aside
@@ -105,8 +106,8 @@ function onTouchEnd() {
           @touchend="onTouchEnd"
         >
           <header class="roster-drawer__header">
-            <h2 class="roster-drawer__title">Players</h2>
-            <button type="button" class="roster-drawer__close" aria-label="Close" @click="close">
+            <h2 class="roster-drawer__title">{{ t('play.players') }}</h2>
+            <button type="button" class="roster-drawer__close" :aria-label="t('common.close')" @click="close">
               <v-icon icon="fas fa-xmark" size="small" />
             </button>
           </header>
@@ -117,7 +118,7 @@ function onTouchEnd() {
 
           <footer class="roster-drawer__footer">
             <button type="button" class="roster-drawer__done" @click="close">
-              Done
+              {{ t('common.done') }}
             </button>
           </footer>
         </aside>

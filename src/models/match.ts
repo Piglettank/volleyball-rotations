@@ -1,3 +1,5 @@
+import { rotationPrefix } from '@/i18n/formationNames'
+
 export type TeamSide = 'home' | 'away'
 
 export type MatchConfig = {
@@ -44,7 +46,7 @@ export const DEFAULT_ROTATION = 2 as RotationNumber
 export const ROTATION_SEQUENCE: readonly RotationNumber[] = [1, 6, 5, 4, 3, 2]
 
 export function rotationLabel(rotation: RotationNumber): string {
-  return `S${rotation}`
+  return `${rotationPrefix()}${rotation}`
 }
 
 export type MatchState = {

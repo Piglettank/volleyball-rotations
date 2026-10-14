@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { createPlayerPositionAnimator } from '@/components/court/courtPlayerAnimation'
+import { t } from '@/i18n'
 import { useMatchStore } from '@/stores/match'
 import { useProfileStore } from '@/stores/profile'
 import { getBallPlacement } from '@/lib/ballPlacement'
@@ -8,7 +9,7 @@ import {
   formationIdForTeam,
   getFormationCoordinates,
   lineupForRotation,
-  ROLE_DISPLAY,
+  roleDisplay,
 } from '@/lib/matchRotation'
 import { learnToPlaySvgCoord, getPlayCourtSvg } from '@/lib/courtPlayLayout'
 import { physicalCourtSide } from '@/models/match'
@@ -270,7 +271,7 @@ function buildAnimPlayers(): AnimPlayer[] {
       const learnCoord = coords[roleId] ?? { x: 0.5, y: 0.75 }
       const assigned = assignments[roleId] ?? null
       const profilePlayer = assigned ? profileStore.getPlayerById(assigned) : null
-      const role = ROLE_DISPLAY[roleId] ?? { name: roleId, abbr: '?' }
+      const role = roleDisplay(roleId) ?? { name: roleId, abbr: '?' }
       const label = profilePlayer ? abbreviationFromName(profilePlayer.name) : role.abbr
       const tooltip = profilePlayer ? `${profilePlayer.name} (${role.name})` : role.name
 
@@ -446,7 +447,12 @@ onUnmounted(() => {
       ref="svgRef"
       :viewBox="viewBox"
       class="match-court__svg"
-      :aria-label="`Play court — ${matchStore.state?.config.homeTeamName} vs ${matchStore.state?.config.awayTeamName}`"
+      :aria-label="
+        t('play.courtLabel', {
+          home: matchStore.teamName('home'),
+          away: matchStore.teamName('away'),
+        })
+      "
     >
       <PlayCourtSurface :orientation="orientation" />
 

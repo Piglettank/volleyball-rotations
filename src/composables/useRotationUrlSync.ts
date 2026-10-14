@@ -7,6 +7,7 @@ import {
   ROTATION_QUERY,
   setFormationInUrl,
 } from '@/lib/formationShare'
+import type { MessageKey } from '@/i18n'
 import { usePlayerStore } from '@/stores/player'
 
 export { setFormationInUrl }
@@ -41,7 +42,7 @@ function syncRotationInUrl(rotationId: string, previousId?: string): void {
 /** Keeps `?rotation=<id>` in sync; reads `?p=` on load; writes `?p=` only via setFormationInUrl. */
 export function useRotationUrlSync() {
   const playerStore = usePlayerStore()
-  const shareLoadError = ref('')
+  const shareLoadError = ref<MessageKey | ''>('')
 
   function applyRotationFromUrl(): void {
     const rotationId = rotationIdFromUrl()
@@ -63,7 +64,7 @@ export function useRotationUrlSync() {
       return true
     }
 
-    shareLoadError.value = 'Could not load formation from link'
+    shareLoadError.value = 'rotations.loadFromLinkFailed'
     playerStore.setActiveRotation(FREE_PLAY_GROUP_ID)
     return true
   }

@@ -2,6 +2,7 @@
 import { computed, nextTick, onUnmounted, ref } from 'vue'
 
 import { COURT } from '@/components/court/courtGeometry'
+import { t } from '@/i18n'
 import { getRotationSlots, type RotationZone } from '@/lib/rotationSlots'
 
 const props = defineProps<{
@@ -196,13 +197,13 @@ const positionStyle = computed(() => ({
       'rotation-cheat-sheet--minimized': minimized,
     }"
     :style="positionStyle"
-    aria-label="Original rotation"
+    :aria-label="t('cheatSheet.label')"
   >
     <div class="rotation-cheat-sheet__controls">
       <button
         class="rotation-cheat-sheet__minimize-btn"
         type="button"
-        :aria-label="minimized ? 'Restore cheat sheet' : 'Minimize cheat sheet'"
+        :aria-label="t(minimized ? 'cheatSheet.restore' : 'cheatSheet.minimize')"
         @click="toggleMinimized"
         @pointerdown.stop
       >
@@ -211,7 +212,7 @@ const positionStyle = computed(() => ({
       <button
         class="rotation-cheat-sheet__grip"
         type="button"
-        aria-label="Move cheat sheet"
+        :aria-label="t('cheatSheet.move')"
         @pointerdown="onGripPointerDown"
         @pointermove="onGripPointerMove"
         @pointerup="endPointer"
@@ -223,7 +224,7 @@ const positionStyle = computed(() => ({
         v-if="!minimized"
         class="rotation-cheat-sheet__resize"
         type="button"
-        aria-label="Resize cheat sheet"
+        :aria-label="t('cheatSheet.resize')"
         @pointerdown="onScalePointerDown"
         @pointermove="onScalePointerMove"
         @pointerup="endPointer"
@@ -247,12 +248,12 @@ const positionStyle = computed(() => ({
     </div>
 
     <div v-if="!minimized" class="rotation-cheat-sheet__court">
-    <span class="rotation-cheat-sheet__label">original rotation</span>
+    <span class="rotation-cheat-sheet__label">{{ t('cheatSheet.label') }}</span>
     <svg
       class="rotation-cheat-sheet__svg"
       :viewBox="`0 0 ${VIEW_W} ${VIEW_H}`"
       role="img"
-      :aria-label="`Zones for ${rotationId}`"
+      :aria-label="t('cheatSheet.zones', { rotation: rotationId })"
     >
       <rect
         :x="PAD"
@@ -417,7 +418,7 @@ const positionStyle = computed(() => ({
 
 .rotation-cheat-sheet__svg {
   display: block;
-  width: calc(13.5rem * var(--sheet-scale, 1));
+  width: calc(11.5rem * var(--sheet-scale, 1));
   height: auto;
 }
 

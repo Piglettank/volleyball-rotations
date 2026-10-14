@@ -1,5 +1,13 @@
+import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import { locale, t, type MessageKey } from '@/i18n'
 import { useMatchStore } from '@/stores/match'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    titleKey?: MessageKey
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,7 +16,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('@/views/HomeView.vue'),
-      meta: { title: 'Volley Rotations' },
+      meta: { titleKey: 'title.home' },
       beforeEnter: (to) => {
         if (to.query.rotation || to.query.p) {
           return { path: '/learn/rotations', query: to.query }
@@ -18,35 +26,35 @@ const router = createRouter({
     {
       path: '/learn',
       component: () => import('@/views/learn/LearnLayout.vue'),
-      meta: { title: 'Learn — Volley Rotations' },
+      meta: { titleKey: 'title.learn' },
       children: [
         {
           path: 'serve',
           name: 'learn-serve',
           component: () => import('@/views/learn/LearnReelsView.vue'),
           props: { category: 'serve' },
-          meta: { title: 'Serve — Volley Rotations' },
+          meta: { titleKey: 'title.serve' },
         },
         {
           path: 'spike',
           name: 'learn-spike',
           component: () => import('@/views/learn/LearnReelsView.vue'),
           props: { category: 'spike' },
-          meta: { title: 'Spike — Volley Rotations' },
+          meta: { titleKey: 'title.spike' },
         },
         {
           path: 'set',
           name: 'learn-set',
           component: () => import('@/views/learn/LearnReelsView.vue'),
           props: { category: 'set' },
-          meta: { title: 'Set — Volley Rotations' },
+          meta: { titleKey: 'title.set' },
         },
         {
           path: 'receive',
           name: 'learn-receive',
           component: () => import('@/views/learn/LearnReelsView.vue'),
           props: { category: 'receive' },
-          meta: { title: 'Receive — Volley Rotations' },
+          meta: { titleKey: 'title.receive' },
         },
       ],
     },
@@ -54,13 +62,13 @@ const router = createRouter({
       path: '/learn/rotations',
       name: 'learn-rotations',
       component: () => import('@/views/learn/RotationsView.vue'),
-      meta: { title: 'Rotations — Volley Rotations' },
+      meta: { titleKey: 'title.rotations' },
     },
     {
       path: '/play',
       name: 'play',
       component: () => import('@/views/play/MatchView.vue'),
-      meta: { title: 'Match — Volley Rotations' },
+      meta: { titleKey: 'title.match' },
       beforeEnter: () => {
         const matchStore = useMatchStore()
         if (!matchStore.isActive) {
@@ -74,11 +82,14 @@ const router = createRouter({
   ],
 })
 
-router.afterEach((to) => {
-  const title = to.meta.title
-  if (typeof title === 'string') {
-    document.title = title
+function updateDocumentTitle() {
+  const titleKey = router.currentRoute.value.meta.titleKey
+  if (titleKey) {
+    document.title = t(titleKey)
   }
-})
+}
+
+router.afterEach(updateDocumentTitle)
+watch(locale, updateDocumentTitle)
 
 export default router

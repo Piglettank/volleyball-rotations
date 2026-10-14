@@ -2,10 +2,11 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useProfileStore } from '@/stores/profile'
 import { useMatchStore } from '@/stores/match'
-import { ROLE_DISPLAY } from '@/lib/matchRotation'
+import { roleDisplay } from '@/lib/matchRotation'
 import { UNCATEGORIZED_FOLDER_ID } from '@/models/profile'
 import type { TeamSide } from '@/models/match'
 import ConfirmDialog from '@/components/play/ConfirmDialog.vue'
+import { t } from '@/i18n'
 
 type Props = {
   selectedPlayerIds?: string[]
@@ -192,6 +193,8 @@ function cancelRemoveFolder() {
 const foldersWithPlayers = computed(() =>
   profileStore.folders.map((folder) => ({
     ...folder,
+    // The built-in folder's stored name stays English; show it in the UI language.
+    name: folder.id === UNCATEGORIZED_FOLDER_ID ? t('roster.defaultFolder') : folder.name,
     players: folder.playerIds
       .map((id) => profileStore.getPlayerById(id))
       .filter((p): p is NonNullable<typeof p> => p != null)
@@ -203,12 +206,12 @@ const foldersWithPlayers = computed(() =>
 <template>
   <div class="roster-manager">
     <div class="roster-manager__add-player">
-      <label class="roster-manager__section-title" for="new-player-name">Add player</label>
+      <label class="roster-manager__section-title" for="new-player-name">{{ t('roster.addPlayer') }}</label>
       <div class="roster-manager__add-row">
         <v-text-field
           id="new-player-name"
           v-model="newPlayerName"
-          placeholder="Player name"
+          :placeholder="t('roster.playerName')"
           density="comfortable"
           variant="outlined"
           bg-color="white"
@@ -223,7 +226,7 @@ const foldersWithPlayers = computed(() =>
           :disabled="!newPlayerName.trim()"
           @click="addPlayer"
         >
-          Add
+          {{ t('roster.add') }}
         </v-btn>
       </div>
     </div>
@@ -247,7 +250,7 @@ const foldersWithPlayers = computed(() =>
               density="compact"
               hide-details
               tabindex="-1"
-              :aria-label="`Select all players in ${folder.name}`"
+              :aria-label="t('roster.selectAllInFolder', { folder: folder.name })"
               @update:model-value="toggleFolderSelection(folder)"
             />
           </div>
@@ -255,7 +258,12 @@ const foldersWithPlayers = computed(() =>
           <button
             class="roster-manager__folder-toggle"
             :aria-expanded="!collapsedFolderIds.has(folder.id)"
-            :aria-label="`${collapsedFolderIds.has(folder.id) ? 'Expand' : 'Collapse'} folder ${folder.name}`"
+            :aria-label="
+              t(
+                collapsedFolderIds.has(folder.id) ? 'roster.expandFolder' : 'roster.collapseFolder',
+                { folder: folder.name },
+              )
+            "
             @click="toggleFolderCollapsed(folder.id)"
           >
             <v-icon
@@ -276,14 +284,14 @@ const foldersWithPlayers = computed(() =>
             icon="fas fa-trash"
             variant="plain"
             size="small"
-            :aria-label="`Remove folder ${folder.name}`"
+            :aria-label="t('roster.removeFolder', { folder: folder.name })"
             @click.stop="requestRemoveFolder(folder)"
           />
         </div>
 
         <template v-if="!collapsedFolderIds.has(folder.id)">
           <div v-if="folder.players.length === 0" class="roster-manager__empty">
-            Drop players here
+            {{ t('roster.dropPlayersHere') }}
           </div>
 
           <div v-else class="roster-manager__players">
@@ -316,14 +324,14 @@ const foldersWithPlayers = computed(() =>
                 :class="`roster-manager__assignment-badge--${a.team}`"
               >
                 <span class="roster-manager__assignment-dot" :class="`roster-manager__assignment-dot--${a.team}`" />
-                {{ ROLE_DISPLAY[a.roleId]?.abbr ?? a.roleId }}
+                {{ roleDisplay(a.roleId)?.abbr ?? a.roleId }}
               </span>
               <v-btn
                 icon="fas fa-xmark"
                 variant="plain"
                 size="x-small"
                 class="roster-manager__remove-btn"
-                :aria-label="`Remove ${player.name}`"
+                :aria-label="t('roster.removePlayer', { name: player.name })"
                 @click.stop="removePlayer(player.id)"
               />
             </div>
@@ -335,12 +343,12 @@ const foldersWithPlayers = computed(() =>
     <div class="roster-manager__folder-actions">
       <template v-if="showAddFolder">
         <div class="roster-manager__field">
-          <label class="roster-manager__section-title" for="new-folder-name">Add folder</label>
+          <label class="roster-manager__section-title" for="new-folder-name">{{ t('roster.addFolder') }}</label>
           <v-text-field
             id="new-folder-name"
             ref="folderNameFieldRef"
             v-model="newFolderName"
-            placeholder="Folder name"
+            :placeholder="t('roster.folderName')"
             density="comfortable"
             variant="outlined"
             bg-color="white"
@@ -356,28 +364,35 @@ const foldersWithPlayers = computed(() =>
             :disabled="!newFolderName.trim()"
             @click="addFolder"
           >
-            Create
+            {{ t('roster.create') }}
           </v-btn>
-          <v-btn variant="outlined" @click="showAddFolder = false">Cancel</v-btn>
+          <v-btn variant="outlined" @click="showAddFolder = false">{{
+            t('common.cancel')
+          }}</v-btn>
         </div>
       </template>
       <button v-else type="button" class="roster-manager__add-folder-link" @click="openAddFolder">
-        + Add folder
+        {{ t('roster.addFolderLink') }}
       </button>
     </div>
 
     <ConfirmDialog
       v-model="showDeleteFolderDialog"
-      title="Delete folder?"
+      :title="t('roster.deleteFolderTitle')"
       icon="fas fa-folder-minus"
       @close="cancelRemoveFolder"
     >
       <p v-if="folderPendingDelete">
-        Delete <strong>{{ folderPendingDelete.name }}</strong
-        >?
-        {{ folderPendingDelete.playerCount }}
-        {{ folderPendingDelete.playerCount === 1 ? 'player' : 'players' }}
-        will be moved to <strong>Players</strong>.
+        {{ t('roster.deleteFolderBefore') }}<strong>{{ folderPendingDelete.name }}</strong
+        >{{
+          t(
+            folderPendingDelete.playerCount === 1
+              ? 'roster.deleteFolderMoveOne'
+              : 'roster.deleteFolderMoveMany',
+            { count: folderPendingDelete.playerCount },
+          )
+        }}<strong>{{ t('roster.defaultFolder') }}</strong
+        >{{ t('roster.deleteFolderAfter') }}
       </p>
 
       <template #actions>
@@ -386,14 +401,14 @@ const foldersWithPlayers = computed(() =>
           class="confirm-dialog__btn confirm-dialog__btn--ghost"
           @click="cancelRemoveFolder"
         >
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button
           type="button"
           class="confirm-dialog__btn confirm-dialog__btn--away"
           @click="confirmRemoveFolder"
         >
-          Delete folder
+          {{ t('roster.deleteFolder') }}
         </button>
       </template>
     </ConfirmDialog>

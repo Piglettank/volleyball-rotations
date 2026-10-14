@@ -2,8 +2,9 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useMatchStore } from '@/stores/match'
 import { useProfileStore } from '@/stores/profile'
-import { ROLE_DISPLAY } from '@/lib/matchRotation'
+import { roleDisplay } from '@/lib/matchRotation'
 import type { TeamSide } from '@/models/match'
+import { t } from '@/i18n'
 
 type Props = {
   team: TeamSide
@@ -50,11 +51,11 @@ const takenByOther = computed<Record<string, string>>(() => {
 })
 
 function takenRoleName(roleId: string): string {
-  return ROLE_DISPLAY[roleId]?.name ?? roleId
+  return roleDisplay(roleId)?.name ?? roleId
 }
 
 const listItems = computed(() => [
-  { title: 'Unassigned', value: null as string | null, takenRoleId: null as string | null },
+  { title: t('play.unassigned'), value: null as string | null, takenRoleId: null as string | null },
   ...rosterPlayers.value.map((player) => ({
     title: player.name,
     value: player.id,
@@ -126,7 +127,7 @@ onUnmounted(() => {
   <div ref="popoverRef" class="assign-popover" :style="style">
     <div class="assign-popover__header">
       <span class="assign-popover__role">{{ roleName }}</span>
-      <v-btn icon="fas fa-xmark" variant="plain" size="x-small" aria-label="Close" @click="emit('close')" />
+      <v-btn icon="fas fa-xmark" variant="plain" size="x-small" :aria-label="t('common.close')" @click="emit('close')" />
     </div>
 
     <v-list density="compact" class="assign-popover__list">
@@ -154,7 +155,7 @@ onUnmounted(() => {
         class="assign-popover__open-players-btn"
         @click="emit('openPlayers')"
       >
-        + Add players
+        {{ t('play.addPlayers') }}
       </button>
     </div>
   </div>

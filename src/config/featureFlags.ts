@@ -12,4 +12,9 @@ export const featureFlags = {
    * When false, only Start position and Defense (B-defense) are shown.
    */
   advancedDefense: true,
+  /**
+   * Serve variants (S1 serve, S6 serve, …) in the start position group.
+   * When false, the group is named "Starting positions receive" and lists only receive variants.
+   */
+  startPositionServe: false,
 } as const

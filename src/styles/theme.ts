@@ -24,5 +24,7 @@ export const APP_THEME_COLORS = {
   surface: '#ffffff',
   background: '#f7f8f9',
   surfaceVariant: '#eef0f2',
+  /** Text on surface-variant (e.g. tooltips) — Vuetify's default is near-white */
+  onSurfaceVariant: '#1a2a3a',
   border: '#dce1e6',
 } as const

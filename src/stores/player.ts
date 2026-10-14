@@ -11,7 +11,7 @@ import type {
 import { isAdvancedDefenseGroup } from '@/config/advancedDefenseGroups'
 import { featureFlags } from '@/config/featureFlags'
 import { getBallPlacement } from '@/lib/ballPlacement'
-import { canonicalFormationId } from '@/lib/matchRotation'
+import { canonicalFormationId, roleDisplay } from '@/lib/matchRotation'
 import {
   decodeFormationPayload,
   encodeFormationPayload,
@@ -111,25 +111,38 @@ function createVariant(
   }
 }
 
+function buildStartPositionVariants(): FormationVariant[] {
+  // The group name already says "receive" when serve variants are hidden.
+  const receiveName = (rotation: number) =>
+    featureFlags.startPositionServe ? `S${rotation} receive` : `S${rotation}`
+
+  const variants = [
+    createVariant('s1-serve', 'S1 serve'),
+    createVariant('s1-receive', receiveName(1)),
+    createVariant('s6-serve', 'S6 serve (Outside hitter 1 serve)'),
+    createVariant('s6-receive', receiveName(6)),
+    createVariant('s5-serve', 'S5 serve (Middle blocker 1 serve)'),
+    createVariant('s5-receive', receiveName(5)),
+    createVariant('s4-serve', 'S4 serve (Opposite serve)'),
+    createVariant('s4-receive', receiveName(4)),
+    createVariant('s3-serve', 'S3 serve (Outside hitter 2 serve)'),
+    createVariant('s3-receive', receiveName(3)),
+    createVariant('s2-serve', 'S2 serve (Middle blocker 2 serve)'),
+    createVariant('s2-receive', receiveName(2)),
+  ]
+
+  if (featureFlags.startPositionServe) {
+    return variants
+  }
+  return variants.filter((variant) => !variant.id.endsWith('-serve'))
+}
+
 function buildInitialFormations(): FormationLibrary {
   return [
     {
       id: 'start-position',
-      name: 'Start position',
-      variants: [
-        createVariant('s1-serve', 'S1 serve'),
-        createVariant('s1-receive', 'S1 receive'),
-        createVariant('s6-serve', 'S6 serve (Outside hitter 1 serve)'),
-        createVariant('s6-receive', 'S6 receive'),
-        createVariant('s5-serve', 'S5 serve (Middle blocker 1 serve)'),
-        createVariant('s5-receive', 'S5 receive'),
-        createVariant('s4-serve', 'S4 serve (Opposite serve)'),
-        createVariant('s4-receive', 'S4 receive'),
-        createVariant('s3-serve', 'S3 serve (Outside hitter 2 serve)'),
-        createVariant('s3-receive', 'S3 receive'),
-        createVariant('s2-serve', 'S2 serve (Middle blocker 2 serve)'),
-        createVariant('s2-receive', 'S2 receive'),
-      ],
+      name: featureFlags.startPositionServe ? 'Start position' : 'Starting positions receive',
+      variants: buildStartPositionVariants(),
     },
     {
       id: 'defense-a',
@@ -150,18 +163,16 @@ function buildInitialFormations(): FormationLibrary {
       ],
     },
     {
-      id: 'free-ball-setter-back',
-      name: 'Free ball (setter in back)',
-      coordinates: cloneCoordinates(),
-    },
-    {
-      id: 'free-ball-setter-front',
-      name: 'Free ball (setter in front)',
-      coordinates: cloneCoordinates(),
+      id: 'free-ball',
+      name: 'Free ball',
+      variants: [
+        createVariant('free-ball-setter-back', 'Setter in back'),
+        createVariant('free-ball-setter-front', 'Setter in front'),
+      ],
     },
     {
       id: FREE_PLAY_GROUP_ID,
-      name: 'Free play',
+      name: 'Custom',
       coordinates: cloneCoordinates(),
     },
   ]
@@ -400,8 +411,11 @@ export const usePlayerStore = defineStore('player', () => {
           return null
         }
 
+        const role = roleDisplay(playerId)
         return {
           ...player,
+          name: role?.name ?? player.name,
+          abbreviation: role?.abbr ?? player.abbreviation,
           coordinate: coordinates[playerId] ?? { x: 0.5, y: 0.5 },
         }
       })

@@ -1,5 +1,5 @@
 import type { RotationNumber } from '@/models/match'
-import { canonicalFormationId, lineupForRotation, ROLE_DISPLAY } from '@/lib/matchRotation'
+import { canonicalFormationId, lineupForRotation, roleDisplay } from '@/lib/matchRotation'
 
 export type RotationZone = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -73,7 +73,7 @@ export function getRotationSlots(formationId: string): RotationSlot[] | null {
       continue
     }
 
-    const role = ROLE_DISPLAY[playerId]
+    const role = roleDisplay(playerId)
     slots.push({
       zone,
       playerId,

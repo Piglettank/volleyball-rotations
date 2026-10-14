@@ -23,6 +23,7 @@ import {
   drawPlayerMarkers,
   prepareCanvasDraw,
 } from '@/components/court/drawCourt'
+import { locale } from '@/i18n'
 import type { BallPlacement } from '@/lib/ballPlacement'
 import type { Camera3D, ProjectionCanvas, ProjectViewport } from '@/components/court/courtProjection'
 import { clampZoom, compute3dViewport, DEFAULT_CAMERA_3D } from '@/components/court/courtProjection'
@@ -614,6 +615,16 @@ watch(
   () => {
     paint()
   },
+)
+
+// Marker labels are localized; repaint when the UI language changes.
+watch(
+  locale,
+  () => {
+    paint()
+  },
+  // Post-flush so the updated `players` prop has arrived.
+  { flush: 'post' },
 )
 
 watch(

@@ -4,10 +4,12 @@ import { useRouter } from 'vue-router'
 
 import Court from '@/components/court/Court.vue'
 import ControlsPanel from '@/components/ControlsPanel.vue'
+import LanguageToggle from '@/components/LanguageToggle.vue'
 import RotationCheatSheet from '@/components/learn/RotationCheatSheet.vue'
 import { COURT_COLORS, type ViewMode } from '@/components/court/courtGeometry'
 import { ROTATIONS_CAMERA_3D } from '@/components/court/courtProjection'
 import { useRotationUrlSync } from '@/composables/useRotationUrlSync'
+import { t } from '@/i18n'
 import { usePlayerStore } from '@/stores/player'
 
 const router = useRouter()
@@ -21,7 +23,9 @@ const importStatus = ref('')
 
 const courtAreaColor = COURT_COLORS.outside
 
-const statusMessage = computed(() => importStatus.value || shareLoadError.value)
+const statusMessage = computed(
+  () => importStatus.value || (shareLoadError.value ? t(shareLoadError.value) : ''),
+)
 </script>
 
 <template>
@@ -31,15 +35,16 @@ const statusMessage = computed(() => importStatus.value || shareLoadError.value)
         v-if="controlsPanelVisible"
         class="rotations-mobile-back"
         type="button"
-        aria-label="Back to home"
+        :aria-label="t('rotations.backToHome')"
         @click="router.push({ name: 'home' })"
       >
         <v-icon icon="fas fa-chevron-left" />
       </button>
+      <LanguageToggle v-if="controlsPanelVisible" class="rotations-mobile-language" />
     </Teleport>
 
     <div class="workspace">
-      <section class="court-area" :class="{ 'court-area--3d': viewMode === '3d' }">
+      <section class="court-area">
         <div class="court-stage">
           <Court
             v-model:view-mode="viewMode"
@@ -71,15 +76,18 @@ const statusMessage = computed(() => importStatus.value || shareLoadError.value)
       </section>
 
       <ControlsPanel v-show="controlsPanelVisible" @import-status="importStatus = $event">
+        <template #top>
+          <LanguageToggle class="rotations-desktop-language" />
+        </template>
         <template #bottom>
           <button
             class="rotations-back-btn"
             type="button"
-            aria-label="Back to home"
+            :aria-label="t('rotations.backToHome')"
             @click="router.push({ name: 'home' })"
           >
             <v-icon icon="fas fa-chevron-left" />
-            <span>Back</span>
+            <span>{{ t('rotations.back') }}</span>
           </button>
         </template>
       </ControlsPanel>
@@ -127,9 +135,27 @@ $desktop-breakpoint: 801px;
   }
 }
 
+.rotations-mobile-language {
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+  right: max(0.75rem, env(safe-area-inset-right, 0.75rem));
+  z-index: 50;
+}
+
+// Desktop only
+.rotations-desktop-language {
+  display: none;
+  align-self: flex-start;
+}
+
 @media (min-width: $desktop-breakpoint) {
-  .rotations-mobile-back {
+  .rotations-mobile-back,
+  .rotations-mobile-language {
     display: none;
+  }
+
+  .rotations-desktop-language {
+    display: flex;
   }
 }
 
@@ -181,7 +207,6 @@ $desktop-breakpoint: 801px;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  padding: 0.5rem;
 }
 
 .court-stage {
@@ -211,17 +236,9 @@ $desktop-breakpoint: 801px;
   max-width: 24rem;
 }
 
-.court-area--3d {
-  padding: 0;
-}
-
 @media (min-width: $desktop-breakpoint) {
   .workspace {
     flex-direction: row;
-  }
-
-  .court-area {
-    padding: 0;
   }
 
   .court-area__cheat-sheet {

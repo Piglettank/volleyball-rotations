@@ -11,6 +11,7 @@ import { APP_THEME_COLORS } from '@/styles/theme'
 import { useMatchStore } from '@/stores/match'
 import { isSetEndEligible, leadingTeam, teamOnLeft, teamOnRight } from '@/models/match'
 import type { TeamSide } from '@/models/match'
+import { t } from '@/i18n'
 
 const router = useRouter()
 const route = useRoute()
@@ -23,7 +24,7 @@ const rightTeam = computed(() => teamOnRight(s.value.sidesSwapped))
 const isPlanning = computed(() => matchStore.canAdjustRotation)
 
 function teamName(team: TeamSide) {
-  return team === 'home' ? s.value.config.homeTeamName : s.value.config.awayTeamName
+  return matchStore.teamName(team)
 }
 
 type PopoverState = {
@@ -104,9 +105,7 @@ const setCompleteLeader = computed(() => leadingTeam(s.value.homeScore, s.value.
 
 const setCompleteLeaderName = computed(() => {
   const leader = setCompleteLeader.value
-  if (leader === 'home') return s.value.config.homeTeamName
-  if (leader === 'away') return s.value.config.awayTeamName
-  return null
+  return leader ? teamName(leader) : null
 })
 
 function openSetComplete() {
@@ -159,7 +158,7 @@ function acceptAutoEnd() {
       <!-- Court -->
       <div class="match-court-wrapper">
         <MatchCourt @player-click="onPlayerClick" />
-        <p v-if="isPlanning" class="match-planning-label">Planning mode</p>
+        <p v-if="isPlanning" class="match-planning-label">{{ t('play.planningMode') }}</p>
       </div>
 
       <!-- Score & controls -->
@@ -184,7 +183,7 @@ function acceptAutoEnd() {
             @click="matchStore.undo()"
           >
             <v-icon icon="fas fa-rotate-left" size="small" class="match-undo-btn__icon" />
-            <span class="match-undo-btn__label">Undo</span>
+            <span class="match-undo-btn__label">{{ t('play.undo') }}</span>
           </button>
 
           <button
@@ -201,7 +200,7 @@ function acceptAutoEnd() {
         <div class="match-footer">
           <button type="button" class="match-footer-btn" @click="showRosterDrawer = true">
             <v-icon icon="fas fa-users" size="x-small" />
-            <span>Players</span>
+            <span>{{ t('play.players') }}</span>
           </button>
 
           <button
@@ -210,12 +209,12 @@ function acceptAutoEnd() {
             @click="openSetComplete"
           >
             <v-icon icon="fas fa-flag-checkered" size="x-small" />
-            <span>Set complete</span>
+            <span>{{ t('play.setComplete') }}</span>
           </button>
 
           <button type="button" class="match-footer-btn match-footer-btn--end" @click="endMatch">
             <v-icon icon="fas fa-door-open" size="x-small" />
-            <span>End match</span>
+            <span>{{ t('play.endMatch') }}</span>
           </button>
         </div>
       </div>
@@ -224,14 +223,14 @@ function acceptAutoEnd() {
     <!-- Set complete dialog -->
     <ConfirmDialog
       v-model="showSetCompleteDialog"
-      title="Complete set"
+      :title="t('play.completeSetTitle')"
       icon="fas fa-flag-checkered"
     >
       <p v-if="setCompleteLeader">
-        Award this set to <strong>{{ setCompleteLeaderName }}</strong
-        >?
+        {{ t('play.awardSetBefore') }}<strong>{{ setCompleteLeaderName }}</strong
+        >{{ t('play.awardSetAfter') }}
       </p>
-      <p v-else>Scores are tied — pick a winner:</p>
+      <p v-else>{{ t('play.scoresTied') }}</p>
 
       <template v-if="setCompleteLeader" #actions>
         <button
@@ -239,14 +238,14 @@ function acceptAutoEnd() {
           class="confirm-dialog__btn confirm-dialog__btn--ghost"
           @click="showSetCompleteDialog = false"
         >
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button
           type="button"
           class="confirm-dialog__btn confirm-dialog__btn--primary"
           @click="confirmSetComplete()"
         >
-          Confirm
+          {{ t('common.confirm') }}
         </button>
       </template>
       <template v-else #actions>
@@ -255,22 +254,27 @@ function acceptAutoEnd() {
           class="confirm-dialog__btn confirm-dialog__btn--home"
           @click="confirmSetComplete('home')"
         >
-          {{ s.config.homeTeamName }}
+          {{ teamName('home') }}
         </button>
         <button
           type="button"
           class="confirm-dialog__btn confirm-dialog__btn--away"
           @click="confirmSetComplete('away')"
         >
-          {{ s.config.awayTeamName }}
+          {{ teamName('away') }}
         </button>
       </template>
     </ConfirmDialog>
 
     <!-- Auto 25+ end-set prompt -->
-    <ConfirmDialog v-model="showAutoEndPrompt" title="End this set?" icon="fas fa-volleyball">
+    <ConfirmDialog
+      v-model="showAutoEndPrompt"
+      :title="t('play.endSetTitle')"
+      icon="fas fa-volleyball"
+    >
       <p>
-        <strong>{{ setCompleteLeaderName }}</strong> leads {{ s.homeScore }}–{{ s.awayScore }}.
+        <strong>{{ setCompleteLeaderName }}</strong
+        >{{ t('play.leadsScore', { home: s.homeScore, away: s.awayScore }) }}
       </p>
 
       <template #actions>
@@ -279,21 +283,25 @@ function acceptAutoEnd() {
           class="confirm-dialog__btn confirm-dialog__btn--ghost"
           @click="dismissAutoEnd"
         >
-          Keep playing
+          {{ t('play.keepPlaying') }}
         </button>
         <button
           type="button"
           class="confirm-dialog__btn confirm-dialog__btn--primary"
           @click="acceptAutoEnd"
         >
-          End set
+          {{ t('play.endSet') }}
         </button>
       </template>
     </ConfirmDialog>
 
     <!-- End match confirmation -->
-    <ConfirmDialog v-model="showEndMatchDialog" title="End match?" icon="fas fa-door-open">
-      <p>The match is ongoing. Are you sure you want to end it?</p>
+    <ConfirmDialog
+      v-model="showEndMatchDialog"
+      :title="t('play.endMatchTitle')"
+      icon="fas fa-door-open"
+    >
+      <p>{{ t('play.endMatchBody') }}</p>
 
       <template #actions>
         <button
@@ -301,14 +309,14 @@ function acceptAutoEnd() {
           class="confirm-dialog__btn confirm-dialog__btn--ghost"
           @click="showEndMatchDialog = false"
         >
-          Keep playing
+          {{ t('play.keepPlaying') }}
         </button>
         <button
           type="button"
           class="confirm-dialog__btn confirm-dialog__btn--end"
           @click="confirmEndMatch"
         >
-          End match
+          {{ t('play.endMatch') }}
         </button>
       </template>
     </ConfirmDialog>

@@ -4,6 +4,8 @@ import { storeToRefs } from 'pinia'
 
 import { clearFormationFromUrl, setFormationInUrl } from '@/lib/formationShare'
 import { featureFlags } from '@/config/featureFlags'
+import { t } from '@/i18n'
+import { groupName, variantName } from '@/i18n/formationNames'
 import { usePlayerStore } from '@/stores/player'
 
 const emit = defineEmits<{
@@ -20,6 +22,17 @@ let copiedTooltipTimeout: ReturnType<typeof setTimeout> | null = null
 
 const hasVariants = computed(() => (playerStore.activeVariantOptions.length ?? 0) > 0)
 
+const groupItems = computed(() =>
+  visibleFormations.value.map((group) => ({ id: group.id, name: groupName(group) })),
+)
+
+const variantItems = computed(() =>
+  playerStore.activeVariantOptions.map((variant) => ({
+    id: variant.id,
+    name: variantName(variant),
+  })),
+)
+
 function showCopiedTooltip() {
   copiedTooltip.value = true
   if (copiedTooltipTimeout) {
@@ -34,7 +47,7 @@ function showCopiedTooltip() {
 async function copyShareLink() {
   const encoded = playerStore.getFreePlayShareString()
   if (!encoded) {
-    emit('importStatus', 'Could not encode formation')
+    emit('importStatus', t('rotations.encodeFailed'))
     return
   }
 
@@ -44,7 +57,7 @@ async function copyShareLink() {
     await navigator.clipboard.writeText(url)
     showCopiedTooltip()
   } catch {
-    emit('importStatus', 'Could not copy link')
+    emit('importStatus', t('rotations.copyFailed'))
   }
 }
 
@@ -78,7 +91,10 @@ async function importLayouts(event: Event) {
 
   const content = await file.text()
   const success = playerStore.importLibraryJson(content)
-  emit('importStatus', success ? `Imported ${file.name}` : `Could not import ${file.name}`)
+  emit(
+    'importStatus',
+    t(success ? 'rotations.imported' : 'rotations.importFailed', { name: file.name }),
+  )
   input.value = ''
 }
 
@@ -90,14 +106,15 @@ function resetLayout() {
 
 <template>
   <v-sheet class="controls-panel" elevation="1" rounded="0">
+    <slot name="top" />
     <div class="controls-panel__content">
-      <h1 class="controls-panel__title">Rotations</h1>
+      <h1 class="controls-panel__title">{{ t('rotations.title') }}</h1>
 
       <div class="panel-section formation-row">
         <v-select
           class="formation-row__group"
           :model-value="activeGroupId"
-          :items="visibleFormations"
+          :items="groupItems"
           item-title="name"
           item-value="id"
           density="comfortable"
@@ -110,7 +127,7 @@ function resetLayout() {
           <v-select
             class="formation-row__variant"
             :model-value="activeVariantId"
-            :items="playerStore.activeVariantOptions"
+            :items="variantItems"
             item-title="name"
             item-value="id"
             density="comfortable"
@@ -123,7 +140,7 @@ function resetLayout() {
               class="variant-stepper-btn"
               variant="outlined"
               density="comfortable"
-              aria-label="Previous rotation"
+              :aria-label="t('rotations.previous')"
               @click="playerStore.stepActiveVariant(-1)"
             >
               <v-icon icon="fas fa-rotate-left" size="small" />
@@ -132,46 +149,46 @@ function resetLayout() {
               class="variant-stepper-btn"
               variant="outlined"
               density="comfortable"
-              aria-label="Next rotation"
+              :aria-label="t('rotations.next')"
               @click="playerStore.stepActiveVariant(1)"
             >
               <v-icon icon="fas fa-rotate-right" size="small" />
             </v-btn>
           </div>
         </div>
-      </div>
 
-      <div v-if="playerStore.isFreePlayActive" class="panel-section free-play-actions">
-        <v-tooltip v-model="copiedTooltip" location="top" :open-on-hover="false">
-          <template #activator="{ props: tooltipProps }">
-            <v-btn
-              v-bind="tooltipProps"
-              class="free-play-action-btn"
-              variant="outlined"
-              density="comfortable"
-              @click="copyShareLink"
-            >
-              <span class="file-action-btn__content">
-                <v-icon icon="fas fa-link" size="small" />
-                <span class="file-action-btn__label">Copy link</span>
-              </span>
-            </v-btn>
-          </template>
-          Link copied
-        </v-tooltip>
+        <div v-if="playerStore.isFreePlayActive" class="free-play-actions">
+          <v-tooltip v-model="copiedTooltip" location="top" :open-on-hover="false">
+            <template #activator="{ props: tooltipProps }">
+              <v-btn
+                v-bind="tooltipProps"
+                class="free-play-action-btn"
+                variant="outlined"
+                density="comfortable"
+                @click="copyShareLink"
+              >
+                <span class="file-action-btn__content">
+                  <v-icon icon="fas fa-link" size="small" />
+                  <span class="file-action-btn__label">{{ t('rotations.copyLink') }}</span>
+                </span>
+              </v-btn>
+            </template>
+            {{ t('rotations.linkCopied') }}
+          </v-tooltip>
 
-        <v-btn
-          v-if="!featureFlags.layoutPersistence"
-          class="free-play-action-btn"
-          variant="outlined"
-          density="comfortable"
-          @click="resetLayout"
-        >
-          <span class="file-action-btn__content">
-            <v-icon icon="fas fa-arrow-rotate-left" size="small" />
-            <span class="file-action-btn__label">Reset</span>
-          </span>
-        </v-btn>
+          <v-btn
+            v-if="!featureFlags.layoutPersistence"
+            class="free-play-action-btn"
+            variant="outlined"
+            density="comfortable"
+            @click="resetLayout"
+          >
+            <span class="file-action-btn__content">
+              <v-icon icon="fas fa-arrow-rotate-left" size="small" />
+              <span class="file-action-btn__label">{{ t('rotations.reset') }}</span>
+            </span>
+          </v-btn>
+        </div>
       </div>
 
       <template v-if="featureFlags.layoutPersistence">
@@ -184,7 +201,7 @@ function resetLayout() {
           >
             <span class="file-action-btn__content">
               <v-icon icon="fas fa-floppy-disk" size="small" />
-              <span class="file-action-btn__label">Save</span>
+              <span class="file-action-btn__label">{{ t('rotations.save') }}</span>
             </span>
           </v-btn>
           <v-btn
@@ -195,7 +212,7 @@ function resetLayout() {
           >
             <span class="file-action-btn__content">
               <v-icon icon="fas fa-download" size="small" />
-              <span class="file-action-btn__label">Export</span>
+              <span class="file-action-btn__label">{{ t('rotations.export') }}</span>
             </span>
           </v-btn>
           <v-btn
@@ -206,7 +223,7 @@ function resetLayout() {
           >
             <span class="file-action-btn__content">
               <v-icon icon="fas fa-upload" size="small" />
-              <span class="file-action-btn__label">Import</span>
+              <span class="file-action-btn__label">{{ t('rotations.import') }}</span>
             </span>
           </v-btn>
         </div>
@@ -302,6 +319,7 @@ $desktop-breakpoint: 801px;
 }
 
 .free-play-actions {
+  display: flex;
   flex-direction: row;
   gap: 0.5rem;
 }
